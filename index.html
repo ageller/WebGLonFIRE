@@ -1,0 +1,1175 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+
+<!-- particle data -->
+<script src="snap440.json"></script>
+
+  <!-- using a couple functions from these guys, yes I'm a WebGL noob -->
+<script type="text/javascript" src="resources/webgl-utils.js"></script>
+<script type="text/javascript" src="resources/glMatrix-0.9.5.min.js"></script>
+
+<!-- for the color picker = spectrum : https://github.com/bgrins/spectrum -->
+<link rel="stylesheet" href="resources/spectrum.css" />
+<script src="resources/jquery-3.2.1.min.js"></script> 
+<script src="resources/spectrum.js"></script>
+
+<!-- noUIslider for filtering -->
+<link href="resources/nouislider.min.css" rel="stylesheet">
+<script src="resources/nouislider.min.js"></script>
+
+<!-- wNumb number formatter -->
+<script src="resources/wNumb.js"></script>
+
+<style>
+.button {
+  position:absolute;
+  left:10px;
+  z-index:2;
+  height:30px;
+  width:120px;
+  padding: 5px;
+  margin:5px;
+  cursor: pointer;
+  font-size:15px;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  overflow: hidden;
+  border: none;
+  opacity: 0.7;
+  background-color: #d3d3d3;
+  -webkit-transition: 0.15s;
+  transition: opacity: 0.15s;
+}
+.button:hover {
+	opacity: 1;
+}
+.button:active {
+  background-color: #4CAF50;
+}
+.button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.button span:after {
+  content: '\00bb';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+.button:hover span {
+  padding-right: 25px;
+}
+
+.button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+#texError {
+  font-size:16pt;
+  background-color:white;
+
+  -webkit-transition: flash 3s ease-out;
+  -moz-transition: flash 3s ease-out;
+  -o-transition: flash 3s ease-out;
+  transition: flash 3s ease-out;
+  animation: flash 3s forwards linear normal;
+  animation-iteration-count:infinite;
+
+}
+@keyframes flash {
+  0% {
+    background-color:white;
+  }
+  50% {
+    background-color:yellow;
+  }
+  100% {
+    background-color:white;
+  }
+}
+
+/* particle UI */
+.particleDiv {
+  position:absolute;
+  left:10px;
+  z-index:2;
+  background-color: #d3d3d3;
+  width:265px;
+  padding:5px;
+  margin:5px;
+  height:20px;
+  opacity: 0.8;
+  -webkit-transition: .15s;
+  transition: opacity .15s;
+}
+.particleDiv:hover {
+    opacity: 1;
+}
+.pLabelDiv {
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:50px;
+}
+.pTextInput{
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:30px;
+}
+/* point and filter size slider */
+.sliderps {
+    /*-webkit-appearance: scrollbarthumb-horizontal;*/
+    width: 100px;
+    margin:0;
+    padding:0;
+    height: 20px;
+    background: #d3d3d3;
+    outline: none;
+}
+
+.sliderps::-webkit-slider-thumb {
+    -webkit-appearance: none; 
+    appearance: none;
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+.sliderps::-moz-range-thumb {
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+/* onoff slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 20px;
+}
+
+.switch input {display:none;}
+
+.slideroo {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding:0;
+  margin:0;
+  background-color: #ffffff;
+  -webkit-transition: .2s;
+  transition: .2s;
+}
+
+.slideroo:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #d3d3d3;
+  -webkit-transition: .2s;
+  transition: .2s;
+}
+
+input:checked + .slideroo {
+  background-color: #000000;
+}
+
+input:focus + .slideroo {
+  box-shadow: 0 0 1px #000000;
+}
+
+input:checked + .slideroo:before {
+  -webkit-transform: translateX(8px);
+  -ms-transform: translateX(8px);
+  transform: translateX(8px);
+}
+
+/* Rounded sliders */
+.slideroo.round {
+  border-radius: 34px;
+}
+
+.slideroo.round:before {
+  border-radius: 50%;
+}
+
+/* color picker = spectrum */
+.sp-replacer{
+	border:0px;
+	z-index:2;
+	position:absolute;
+ 	top:0px;
+ 	margin:0;
+ 	height:20px;
+ 	width:27px;
+ 	background:#d3d3d3;
+ 	left:240px;
+}
+.sp-replacer:hover, .sp-replacer.sp-active  {
+	border:0;
+}
+.sp-picker-container{
+	border:0;
+}
+
+/* dropdown menu */
+.dropbtn {
+	position:absolute;
+	left: 275px;
+	top:0;
+	height: 30px;
+    background-color: #d3d3d3;
+    padding: 2px;
+    font-size: 16px;
+    cursor: pointer;
+    border:0;
+    color:white;
+}
+.dropbtn:hover{
+	color:black;
+}
+.dropdown {
+    position: absolute;
+    display: inline-block;
+}
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #a3a3a3;
+    width: 293px;
+    padding:0;
+    margin:0;
+    overflow: auto;
+    z-index: 2;
+    left:0;
+	margin-top:1px;
+	min-height:100px;
+}
+.dropdown-content div {
+    color: black;
+    text-decoration: none;
+    display: block;
+}
+.show {display:block;}
+
+.FilterClass{
+	position:absolute;
+	margin-top:10px;
+	left:100px;
+	width:150px;
+	height:20px;
+}
+.FilterClassLabel{
+  position:absolute; 
+  left:-90px;
+  top:-5px;
+}
+.FilterMinTClass{
+	position:absolute;
+	top:-5px;
+	left:-40px;
+	width:30px;
+	height:10px;
+	padding:2px;
+	color:black;
+}
+.FilterMaxTClass{
+	position:absolute;
+	top:-5px;
+	left:150px;
+	width:30px;
+	height:10px;
+	padding:2px;
+}
+.noUi-target{
+  cursor: pointer;
+}
+.noUi-connect{
+	background:black;
+}
+.noUi-handle{
+  cursor: pointer;
+	background:black;
+	box-shadow:none;
+	border-radius: 0;
+  border:1px solid #d3d3d3;
+}
+.noUi-horizontal {
+  height: 10px;
+}
+.noUi-horizontal .noUi-handle {
+    width: 10px;
+    left: -5px;
+    height: 22px;
+    top:-8px;
+}
+.noUi-handle:before,
+.noUi-handle:after {
+  height: 0px;
+  width: 0px;
+}
+.NdDiv{
+	padding:5px; 
+	height:20px; 
+	display:inline-block; 
+	width:283px
+}
+</style>
+
+<title>WebGLonFIRE</title>
+
+
+<!--Fullscreen query-->
+<script>
+
+var saveWidth = 0.;
+var saveHeight = 0.;
+
+function fullscreen(){
+ //   var elem = document.getElementById('WebGL-canvas');
+    var elem = document.getElementById('ContentContainer');
+    saveWidth = elem.width;
+    saveHeight = elem.height;
+    elem.width = screen.width;
+    elem.height = screen.height;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+    }
+    document.getElementById("fullScreenButton").style.visibility = "hidden"
+
+}
+
+if (document.addEventListener)
+{
+    document.addEventListener('webkitfullscreenchange', exitHandler, false);
+    document.addEventListener('mozfullscreenchange', exitHandler, false);
+    document.addEventListener('fullscreenchange', exitHandler, false);
+    document.addEventListener('MSFullscreenChange', exitHandler, false);
+}
+
+function exitHandler()
+{
+    //var elem = document.getElementById('WebGL-canvas');
+    var elem = document.getElementById('ContentContainer');
+
+    if (document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenElement != null){
+//    	document.getElementById("fullScreenButton").style.visibility = "hidden"
+    } else {
+    	document.getElementById("fullScreenButton").style.visibility = "visible"
+        elem.width = saveWidth;
+        elem.height = saveHeight;
+    }
+
+}
+
+</script>
+
+<!-- The main attraction -->
+<script type="text/javascript">
+
+var gl;
+var canvas; 
+var shaderProgram;
+var mvMatrix = mat4.create();
+var pMatrix = mat4.create();
+var defHeight = 786;
+var defWidth = 1024;
+
+var VertexPositionBuffer;
+
+//for mouse events
+var mouseDown = false;
+var lastMouseX = null;
+var lastMouseY = null;
+var xrot = 0.;
+var yrot = 0.;
+var dz = 0.;
+var zcamera = -0.5;
+var friction = 1.;
+var df = 0.0003;
+
+//positions
+var center = [0., 0., -50.];
+var cfac = 1./4000.;
+
+//plotting fields
+var plotGas = true;
+var plotStars = true;
+var plotLRDM = true;
+var plotHRDM = true;
+
+//particle sizes
+var GasPsize = 0.001;
+var StarsPsize = 0.001;
+var LRDMPsize = 0.001;
+var HRDMPsize = 0.001;
+
+//particle default colors;
+var GasColor = [1., 0., 0., 1.];
+var LRDMColor = [1., 1., 0., 1.];
+var HRDMColor = [1., 1., 0., 1.];
+var StarsColor = [0., 0., 1., 1.];
+
+//Decimation
+var Decimate = 1;
+var GasNmax = parts.Gas.Coordinates.length;
+var StarsNmax = parts.Stars.Coordinates.length;
+var LRDMNmax = parts.LowResDarkMatter.Coordinates.length;
+var HRDMNmax = parts.HighResDarkMatter.Coordinates.length;
+
+//Filtering
+var gasmin = Math.log10(Math.min(...parts.Gas.Masses)) + 10.;
+var gasmax = Math.log10(Math.max(...parts.Gas.Masses)) + 10.;
+var GasMassRange = [gasmin, gasmax];
+var gasSliderF;
+var gasSliderTmin;
+var gasSliderTmax;
+var gasSliderInputs;
+
+//handle window resize event
+function handleResize(event){
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	gl.viewportWidth = canvas.width;
+	gl.viewportHeight = canvas.height;
+}
+
+//handle Mouse events
+function handleMouseDown(event) {
+    mouseDown = true;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+}
+
+function handleMouseUp(event) {
+    mouseDown = false;
+}
+
+function handleMouseMove(event) {    
+    if (!mouseDown) {
+        return;
+    }
+
+    var newX = event.clientX;
+    var newY = event.clientY;
+
+    var deltaX = newX - lastMouseX
+    var deltaY = newY - lastMouseY;
+
+    lastMouseX = newX
+    lastMouseY = newY;
+
+    var dxrot = 0.;
+    var dyrot = 0.;
+    var fac = 200.;
+    dz = 0.;
+    if (event.which == 1 || event.which == 3){
+        dxrot = deltaX / canvas.width;
+        dyrot = deltaY / canvas.height;
+    } 
+    if (event.which == 2) {
+        dz = deltaY * 0.1;
+    }
+
+    xrot += dxrot*fac;
+    xrot = xrot % 360.
+    yrot += dyrot*fac;
+    yrot = yrot % 360.;
+}
+
+//https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
+function handleMouseWheel(event) 
+{
+    // Determine the direction of the scroll (< 0 = up, > 0 = down).
+    var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
+    dz = delta * 0.1;
+}
+
+
+
+//functions to check sizes of particles
+function checkColor(event, color)
+{
+	rgb = color.toRgb();
+	if (event.id == "GasColorPicker"){
+		GasColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "LRDMColorPicker"){
+		LRDMColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "HRDMColorPicker"){
+		HRDMColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "StarsColorPicker"){
+		StarsColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+
+}
+
+function initNsliders(dovalues = false){
+	/* Gas N particle */
+	var gasN = document.getElementById("GasNRange");
+	var gasNt = document.getElementById("GasNText");
+	Ngas = Math.round(parts.Gas.Coordinates.length/Decimate);
+	gasN.max = Ngas;
+	if (dovalues){
+		gasN.value = Ngas;
+		gasNt.value = Ngas;
+		GasNmax = Ngas;
+	}
+}
+
+// Filters
+function setSliderHandle(i, value, parent) {
+	var r = [null,null];
+	r[i] = value;
+	parent.noUiSlider.set(r);
+	GasMassRange[i] = value;
+}
+// Listen to keydown events on the input field.
+function handleSliderText(input, handle) 
+{
+	input.addEventListener('change', function(){
+		setSliderHandle(handle, this.value, this.parent);
+	});
+	input.addEventListener('keydown', function( e ) {
+		var values = input.parent.noUiSlider.get();
+		var value = Number(values[handle]);
+		// [[handle0_down, handle0_up], [handle1_down, handle1_up]]
+		var steps = input.parent.noUiSlider.options.steps;
+		// [down, up]
+		var step = steps[handle];
+		var position;
+		// 13 is enter,
+		// 38 is key up,
+		// 40 is key down.
+		switch ( e.which ) {
+			case 13:
+				setSliderHandle(handle, this.value, input.parent);
+				break;
+			case 38:
+				// Get step to go increase slider value (up)
+				// false = no step is set
+				position = step[1];
+				if ( position === false ) {
+					position = 1;
+				}
+				// null = edge of slider
+				if ( position !== null ) {
+					setSliderHandle(handle, value + position, input.parent);
+				}
+				break;
+			case 40:
+				position = step[0];
+				if ( position === false ) {
+					position = 1;
+				}
+				if ( position !== null ) {
+					setSliderHandle(handle, value - position, input.parent);
+				}
+				break;
+		}
+	});
+};
+
+
+function initFilters(){
+	gasSliderF = document.getElementById('GasMassFilterSlider');
+	gasSliderTmin = document.getElementById('GasMassFilterMinT');
+	gasSliderTmax = document.getElementById('GasMassFilterMaxT');
+	gasSliderInputs = [gasSliderTmin, gasSliderTmax];
+	gasSliderInputs[0].parent = gasSliderF;
+	gasSliderInputs[1].parent = gasSliderF;
+
+	/* Gas Mass Filter */
+	noUiSlider.create(gasSliderF, {
+		start: [gasmin, gasmax],
+		connect: true,
+		tooltips: [false, false],
+		steps: [[0.001,0.001],[0.001,0.001]],
+		range: {
+			'min': [gasmin],
+			'max': [gasmax]
+		},
+		format: wNumb({
+		decimals: 3
+		})
+	});
+
+	gasSliderF.noUiSlider.on('update', function(values, handle) {
+		gasSliderInputs[handle].value = values[handle];
+		GasMassRange[handle] = values[handle];
+	});
+	gasSliderInputs.forEach(handleSliderText);
+}
+
+function checkSlider(slider)
+{
+	if (slider.id == "GasRange"){
+		GasPsize = 0.001 * slider.value /100.;
+		document.getElementById("GasText").value = slider.value/100.;
+	}
+	if (slider.id == "StarsRange"){
+		StarsPsize = 0.001 * slider.value /100.;
+		document.getElementById("StarsText").value = slider.value/100.;
+	}
+	if (slider.id == "LRDMRange"){
+		LRDMPsize = 0.001 * slider.value /100.;
+		document.getElementById("LRDMText").value = slider.value/100.;
+	}
+	if (slider.id == "HRDMRange"){
+		HRDMPsize = 0.001 * slider.value /100.;
+		document.getElementById("HRDMText").value = slider.value/100.;
+	}
+	if (slider.id == "DecimateRange"){
+		Decimate = Math.round(slider.value);
+		document.getElementById("DecimateText").value = slider.value;
+		initNsliders();
+	}
+	if (slider.id == "GasNRange"){
+		document.getElementById("GasNText").value = slider.value;
+		GasNmax = Math.round(slider.value)
+	}
+}
+function checkText(input, event)
+{
+	var key=event.keyCode || event.which;
+  	if (key==13){
+  		if (input.id == "GasText"){
+			document.getElementById("GasRange").value = 100.*input.value;
+			GasPsize = 0.001 * input.value ;
+		}
+		if (input.id == "StarsText"){
+			document.getElementById("StarsRange").value = 100.*input.value;
+			StarsPsize = 0.001 * input.value ;
+		}
+		if (input.id == "LRDMText"){
+			document.getElementById("LRDMRange").value = 100.*input.value;
+			LRDMPsize = 0.001 * input.value ;
+		}
+		if (input.id == "HRDMText"){
+			document.getElementById("HRDMRange").value = 100.*input.value;
+			HRDMPsize = 0.001 * input.value ;
+		}
+		if (input.id == "DecimateText"){
+			document.getElementById("DecimateRange").value = input.value;
+			Decimate = Math.round(input.value);
+			initNsliders();
+		}
+		if (input.id == "GasNText"){
+			document.getElementById("GasNRange").value = input.value;
+			GasNmax = Math.round(input.value);
+		}  	
+	}
+
+}
+
+//function to check which types to plot
+function checkPlotParts(checkbox)
+{
+	if (checkbox.id == "GasCheck"){
+    	plotGas = false;
+    	if (checkbox.checked){
+       		plotGas = true;
+    	}
+    } 
+    if (checkbox.id == "StarsCheck"){
+        plotStars = false;
+	   	if (checkbox.checked){
+			plotStars = true;
+    	}
+    }
+    if (checkbox.id == "LRDMCheck"){
+    	plotLRDM = false;
+   	 	if (checkbox.checked){
+        	plotLRDM = true;
+        }
+    }
+    if (checkbox.id == "HRDMCheck"){
+    	plotHRDM = false;
+    	if (checkbox.checked){
+        	plotHRDM = true;
+        }
+    }
+}
+
+//initialize the shaders
+function initShaders() {
+
+    //Shader compilation
+    vertexShader = createShaderFromScriptElement(gl, "vertex-shader");
+    fragmentShader = createShaderFromScriptElement(gl, "fragment-shader");
+    shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert("Could not initialise shaders");
+    }
+
+    gl.useProgram(shaderProgram);
+
+    //Uniform location
+    shaderProgram.positionLocation = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+    shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.resUniform = gl.getUniformLocation(shaderProgram, "resolution");
+    shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "color");
+    shaderProgram.vScaleUniform = gl.getUniformLocation(shaderProgram, "uVertexScale");
+
+}    
+
+// for moving and rotating objects
+function degToRad(degrees) {
+    return degrees * Math.PI / 180;
+}
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+}
+
+// initialize the buffer(s) that contain the vertices
+// this is just a simple quad (billboard)
+function initBuffers() {
+    VertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, VertexPositionBuffer);
+    vertices = [
+         1.0,  1.0,  0.0,
+        -1.0,  1.0,  0.0,
+         1.0, -1.0,  0.0,
+        -1.0, -1.0,  0.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = 4;
+}
+
+
+function drawScene() {
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 1e-10, 100.0, pMatrix);
+    
+    var partsKey = Object.keys(parts);
+
+    var partsColors = [ GasColor, LRDMColor, HRDMColor, StarsColor];
+    var partsScale = [GasPsize, LRDMPsize, HRDMPsize, StarsPsize];
+    var plotParts = [plotGas, plotLRDM, plotHRDM, plotStars];
+    var plotNmax = [GasNmax, LRDMNmax, HRDMNmax, StarsNmax];
+
+    zcamera += dz;
+    dz = 0.;
+
+    gl.uniform2f(shaderProgram.resUniform, canvas.width/defWidth, canvas.height/defHeight);
+    var i=0;
+    var j=0;
+    var idraw = 0;
+
+    var showpart = true;
+
+    for (j = 0; j < partsColors.length; j++){
+    	if (plotParts[j]){
+
+        var partsCoords = parts[partsKey[j]].Coordinates;
+        var keys = Object.keys(parts[partsKey[j]]);
+        //console.log(keys);
+	    	imax = partsCoords.length;
+
+	        gl.uniform4fv(shaderProgram.colorUniform, partsColors[j]);//partsColors[i]);
+	        idraw = 0;
+
+	        for (i = 0; i < imax; i++) {
+	        	showpart = true;
+
+	        	if (idraw > plotNmax[j]){
+	        		break;
+	        		//showpart = false;
+	        	}
+// could be smarter about this so that I don't have to do a mod every time (save array of showparts on first pass)	        	
+	        	if ((i % Decimate != 0)){
+	        		showpart = false;
+	        	}
+	        	if (partsKey[j] == "Gas"){
+	        		mass = Math.log10(parts[partsKey[j]].Masses[i]) + 10.;
+
+	        		if (mass > GasMassRange[1] || mass < GasMassRange[0]){
+	        			showpart = false;
+	        		}
+	        	}
+
+	        	if (showpart){
+	        		idraw += 1;
+
+		            mat4.identity(mvMatrix);
+
+		            mat4.translate(mvMatrix, [0., 0., zcamera]);
+
+			    //console.log(i, [partsCoords[i][0]*cfac, partsCoords[i][1]*cfac, partsCoords[i][2]*cfac]);
+		            mat4.rotate(mvMatrix, degToRad(yrot), [1, 0, 0]);
+		            mat4.rotate(mvMatrix, degToRad(xrot), [0, 1, 0]);
+		            mat4.translate(mvMatrix, [partsCoords[i][0]*cfac + center[0], partsCoords[i][1]*cfac + center[1], partsCoords[i][2]*cfac + center[2]]);
+		            mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
+		            mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
+		            setMatrixUniforms();
+
+		            gl.bindBuffer(gl.ARRAY_BUFFER, VertexPositionBuffer);
+		            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		            gl.uniform1f(shaderProgram.vScaleUniform, partsScale[j]);
+		            gl.drawArrays(gl.TRIANGLE_STRIP, 0, VertexPositionBuffer.numItems);
+		        }
+	        }
+	    }
+    }
+}
+
+// from https://codepen.io/KryptoniteDove/post/load-json-file-locally-using-pure-javascript
+function loadJSON(callback) {   
+
+    var xobj = new XMLHttpRequest();
+	xobj.overrideMimeType("application/json");
+    xobj.open('GET', 'snap440.json', true); 
+    xobj.onreadystatechange = function () {
+          if (xobj.readyState == 4 && xobj.status == "200") {
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+            callback(xobj.responseText);
+          }
+    };
+    xobj.send(null);  
+ }
+
+function initGL() {
+    try {
+        //gl = getWebGLContext(canvas);
+        gl = canvas.getContext("webgl");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+    } catch (e) {
+    }
+    if (!gl) {
+        alert("Could not initialise WebGL, sorry !");
+    }
+}
+
+function setCenter(coords){
+    var sum = [0., 0., 0.];
+    for( var i = 0; i < coords.length; i++ ){
+        sum[0] += coords[i][0];
+        sum[1] += coords[i][1];
+        sum[2] += coords[i][2];
+    }
+    center = [-1.*sum[0]/coords.length*cfac, -1.*sum[1]/coords.length*cfac, -1.*sum[2]/coords.length*cfac];
+}
+
+function tick() {
+	requestAnimFrame(tick);
+    drawScene();
+}
+
+var parts;
+function webGLStart() {
+    canvas = document.getElementById("WebGL-canvas");
+    initGL();
+    initShaders();
+    initBuffers();
+    initNsliders(dovalues=true);
+    initFilters();
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.enable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
+    canvas.onmousedown = handleMouseDown;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove;
+    canvas.addEventListener('wheel', handleMouseWheel);
+    canvas.addEventListener('mousewheel', handleMouseWheel)
+    canvas.addEventListener('DOMMouseScroll', handleMouseWheel);
+    window.addEventListener("resize", handleResize);
+    canvas.onwheel = function(event){ event.preventDefault(); };
+    canvas.onmousewheel = function(event){ event.preventDefault(); };
+
+//    loadJSON(function(response) {
+//        // Parse JSON string into object
+//         parts = JSON.parse(response);
+//         setCenter(parts.Gas.Coordinates);
+//         tick();
+//    });
+    setCenter(parts.Gas.Coordinates);
+    tick();
+}
+</script>
+
+<!--fragment shader -->
+<script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    varying vec3 vPosition;
+    varying vec2 vResolution;
+    varying float vVertexScale;
+
+    uniform vec4 color;
+    const float rad = 1.;
+
+    void main(void) {
+        gl_FragColor = color;
+        // Get the distance vector from the center
+        vec2 fromCenter = abs(vPosition.xy);
+        float dist = length(fromCenter);
+        gl_FragColor.a *= 1. - dist/rad;
+
+        if (dist > rad) {
+           discard;
+        }
+    }
+</script>
+
+<!-- vertex shader -->
+<script id="vertex-shader" type="x-shader/x-vertex">
+    varying vec3 vPosition;
+    varying vec2 vResolution;
+    varying float vVertexScale;
+
+    attribute vec3 aVertexPosition;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    uniform vec2 resolution;
+    uniform float uVertexScale;
+
+    void main(void) {
+        vPosition = aVertexPosition;
+        vResolution = resolution;
+        vVertexScale = uVertexScale;
+
+        vec3 vPos = aVertexPosition;
+        vPos.xy *= uVertexScale;
+        gl_Position = uPMatrix * uMVMatrix * vec4(vPos, 1.0);
+
+
+        //vec4 vertex = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        //gl_Position = vertex;
+    }
+</script>
+
+
+</head>
+
+<body onload="webGLStart();">
+
+  <div class="container" id="ContentContainer">
+<!-- Full Screen -->
+    	<button id = "fullScreenButton" class="button" style="top:10px" onclick="fullscreen();"><span>Fullscreen</span></button>
+<!-- Decimation -->
+      	<div class="particleDiv" style="top:45px">
+      		<div class='pLabelDiv' style="width:85px"> Decimation </div>
+        	<input id="DecimateRange" type="range" min="1" max="100" value="1" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+    		<input id="DecimateText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    	</div>	
+<!-- Gas -->      
+    	<div class="particleDiv GasDiv dropdown" style="top:80px">
+    		<div class="pLabelDiv">Gas</div>
+    		<label class="switch">
+  				<input checked id="GasCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
+  				<span class="slideroo"></span>
+			</label>
+    		<input id="GasRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+    		<input id="GasText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    		<input type="text" id="GasColorPicker"/>
+    		<button onclick="showFunction()" class="dropbtn">&#x25BC</button>
+    		<div id="myDropdown" class="dropdown-content">
+<!-- Gas N particles -->
+      		<div class="NdDiv">
+      			<span class="pLabelDiv" style="width:20px">N</span>
+        		<input id="GasNRange" style="width:165px; background:#a3a3a3" type="range" min="0" max="100" value="0" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+    			<input id="GasNText" style ="width:50px" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    		</div>	
+<!-- Gas Filters  -->
+            <div style="padding:5px; height:20px; background:#808080;  display:inline-block; width:283px"><b>Filters</b> </div>
+    		    <div id="GasMassFilter" class="FilterClass">
+              		<div class="FilterClassLabel">Mass:</div>
+    		    	<div id='GasMassFilterSlider'></div>
+					<input type="text" id='GasMassFilterMinT' class='FilterMinTClass'>
+					<input type="text" id='GasMassFilterMaxT' class='FilterMaxTClass'>
+  		    	</div>
+  			</div>
+     	</div>
+<!-- Stars -->
+      	<div class="particleDiv StarsDiv" style="top:115px">
+      		<div class="pLabelDiv">Stars</div>
+      		<label class="switch">
+  				<input checked id="StarsCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
+  				<span class="slideroo"></span>
+	  		</label>
+      		<input id="StarsRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="StarsText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    		<input type="text" id="StarsColorPicker"/>
+
+      	</div>
+<!-- LRDM -->
+      	<div class="particleDiv LRDMDiv" style="top:150px">
+      	<div class="pLabelDiv">LRDM</div>
+      		<label class="switch">
+  				<input checked id="LRDMCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
+  				<span class="slideroo"></span>
+	  		</label>
+      		<input id="LRDMRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="LRDMText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    		<input type="text" id="LRDMColorPicker"/>
+      	</div>
+<!-- HRDM -->
+      	<div class="particleDiv HRDMDiv" style="top:185px">
+      	<div class="pLabelDiv">HRDM</div>
+      		<label class="switch">
+  				<input checked id="HRDMCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
+  				<span class="slideroo"></span>
+	  		</label>
+      		<input id="HRDMRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="HRDMText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+     		<input type="text" id="HRDMColorPicker"/>
+      	</div>
+
+<!-- WebGL canvas -->
+      <canvas oncontextmenu="return false;" id="WebGL-canvas" style="margin-left:auto; margin-right:0; display:block; padding:0px; background-color:black; position:absolute; top:0; left:0" ></canvas> 
+
+
+</div>
+
+<script type="text/javascript">
+
+/* for color pickers*/
+$("#GasColorPicker").spectrum({
+    color: "rgb(255,0,0)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#StarsColorPicker").spectrum({
+    color: "rgb(0,0,255)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#LRDMColorPicker").spectrum({
+    color: "rgb(255,255,0)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#HRDMColorPicker").spectrum({
+    color: "rgb(255,255,0)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+
+
+/* dropdowns */
+var sdiv = document.getElementsByClassName("StarsDiv")[0];
+var ldiv = document.getElementsByClassName("LRDMDiv")[0];
+var hdiv = document.getElementsByClassName("HRDMDiv")[0];
+var sdivTop = parseInt(sdiv.style.top, 10);
+var ldivTop = parseInt(ldiv.style.top, 10);
+var hdivTop = parseInt(hdiv.style.top, 10);
+var offset = 100;
+var gtoggle = true;
+function showFunction() {
+    document.getElementById("myDropdown").classList.toggle("show");
+    if (gtoggle){
+    	sdivTop += offset;	
+    	ldivTop += offset;	
+    	hdivTop += offset;	
+    	gtoggle = false
+    } else {
+    	sdivTop -= offset;
+    	ldivTop -= offset;
+    	hdivTop -= offset;
+    	gtoggle = true;
+    }
+    sdiv.setAttribute("style","top: "+sdivTop + "px; ");
+    ldiv.setAttribute("style","top: "+ldivTop + "px; ");
+    hdiv.setAttribute("style","top: "+hdivTop + "px; ");
+}
+
+</script>
+
+</body>
+</html>
+
