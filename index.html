@@ -449,8 +449,8 @@ var HRDMNmax = parts.HighResDarkMatter.Coordinates.length;
 
 //Filtering
 //I need to add a small factor because the precision of the noUiSlider effects the filtering
-var gasmin = (Math.log10(Math.min(...parts.Gas.Masses)) + 10.) - 0.0001;
-var gasmax = (Math.log10(Math.max(...parts.Gas.Masses)) + 10.) + 0.0001;
+var gasmin = (Math.log10(Math.min(...parts.Gas.Masses)) + 10.) - 0.001;
+var gasmax = (Math.log10(Math.max(...parts.Gas.Masses)) + 10.) + 0.001;
 var GasMassRange = [gasmin, gasmax];
 var gasSliderF;
 var gasSliderTmin;
