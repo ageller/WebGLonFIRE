@@ -401,6 +401,7 @@ var gl;
 var canvas; 
 var shaderProgram;
 var mvMatrix = mat4.create();
+var mvMatrix0 = mat4.create();
 var pMatrix = mat4.create();
 var defHeight = 786;
 var defWidth = 1024;
@@ -457,6 +458,15 @@ var gasSliderTmin;
 var gasSliderTmax;
 var gasSliderInputs;
 
+//set up the mvMatrix
+function setmvMatrix0()
+{
+	mat4.identity(mvMatrix0);
+	mat4.translate(mvMatrix0, [0., 0., zcamera]);
+	mat4.rotate(mvMatrix0, degToRad(yrot), [1, 0, 0]);
+	mat4.rotate(mvMatrix0, degToRad(xrot), [0, 1, 0]);
+}
+
 //handle window resize event
 function handleResize(event){
 	canvas.width = window.innerWidth;
@@ -506,6 +516,8 @@ function handleMouseMove(event) {
     xrot = xrot % 360.
     yrot += dyrot*fac;
     yrot = yrot % 360.;
+    zcamera += dz;
+    setmvMatrix0();
 }
 
 //https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
@@ -513,7 +525,9 @@ function handleMouseWheel(event)
 {
     // Determine the direction of the scroll (< 0 = up, > 0 = down).
     var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
-    dz = delta * 0.1;
+    zcamera += delta * 0.1;
+    setmvMatrix0();
+
 }
 
 
@@ -793,8 +807,7 @@ function drawScene() {
     var plotParts = [plotGas, plotHRDM, plotLRDM, plotStars];
     var plotNmax = [GasNmax, HRDMNmax, LRDMNmax, StarsNmax];
     //console.log(plotNmax)
-    zcamera += dz;
-    dz = 0.;
+
 
     gl.uniform2f(shaderProgram.resUniform, canvas.width/defWidth, canvas.height/defHeight);
     var i=0;
@@ -810,7 +823,7 @@ function drawScene() {
         var keys = Object.keys(parts[partsKey[j]]);
         //console.log(keys);
 	    	imax = partsCoords.length;
-
+	    	
 	        gl.uniform4fv(shaderProgram.colorUniform, partsColors[j]);//partsColors[i]);
 	        //console.log(idraw);
 	        idraw = [0,0,0,0];
@@ -837,13 +850,12 @@ function drawScene() {
 	        	if (showpart){
 	        		idraw[j] += 1;
 
-		            mat4.identity(mvMatrix);
 
-		            mat4.translate(mvMatrix, [0., 0., zcamera]);
-
-			    //console.log(i, [partsCoords[i][0]*cfac, partsCoords[i][1]*cfac, partsCoords[i][2]*cfac]);
-		            mat4.rotate(mvMatrix, degToRad(yrot), [1, 0, 0]);
-		            mat4.rotate(mvMatrix, degToRad(xrot), [0, 1, 0]);
+	        		mvMatrix = mat4.create(mvMatrix0);
+	        		//mat4.identity(mvMatrix);
+		            //mat4.translate(mvMatrix, [0., 0., zcamera]);
+		            //mat4.rotate(mvMatrix, degToRad(yrot), [1, 0, 0]);
+		            //mat4.rotate(mvMatrix, degToRad(xrot), [0, 1, 0]);
 		            mat4.translate(mvMatrix, [partsCoords[i][0]*cfac + center[0], partsCoords[i][1]*cfac + center[1], partsCoords[i][2]*cfac + center[2]]);
 		            mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
 		            mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
@@ -899,9 +911,13 @@ function setCenter(coords){
     center = [-1.*sum[0]/coords.length*cfac, -1.*sum[1]/coords.length*cfac, -1.*sum[2]/coords.length*cfac];
 }
 
+var drawit = true;
 function tick() {
 	requestAnimFrame(tick);
-    drawScene();
+	if (drawit){
+	    drawScene();
+//		drawit = false;
+	}	
 }
 
 var parts;
@@ -912,6 +928,7 @@ function webGLStart() {
     initBuffers();
     initNsliders(dovalues=true);
     initFilters();
+    setmvMatrix0();
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
