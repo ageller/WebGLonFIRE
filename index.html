@@ -23,10 +23,21 @@
 <!-- wNumb number formatter -->
 <script src="resources/wNumb.js"></script>
 
+<!-- frustum culling from Alex Gurvich -->
+<script src="frustum_culling.js"></script>
+
 <style>
+.UIcontainer{
+	z-index:2; 
+	display:inline-block; 
+	min-height:300px; 
+	position:absolute;
+	top:10px;
+	left:10px;
+}
+
 .button {
   position:absolute;
-  left:10px;
   z-index:2;
   height:30px;
   width:120px;
@@ -100,8 +111,7 @@
 
 /* particle UI */
 .particleDiv {
-  position:absolute;
-  left:10px;
+  position:relative;
   z-index:2;
   background-color: #d3d3d3;
   width:265px;
@@ -415,13 +425,12 @@ var lastMouseY = null;
 var xrot = 0.;
 var yrot = 0.;
 var dz = 0.;
-var zcamera = -0.15;
+var camerapos = [0., 0., -600];
 var friction = 1.;
 var df = 0.0003;
 
 //positions
 var center = [0., 0., -50.];
-var cfac = 1./4000.;
 
 //plotting fields
 var plotGas = true;
@@ -430,29 +439,31 @@ var plotLRDM = true;
 var plotHRDM = true;
 
 //particle sizes
-var GasPsize = 0.0001;
-var StarsPsize = 0.0001;
-var LRDMPsize = 0.0001;
-var HRDMPsize = 0.0001;
+var GasPsize = 1.;
+var StarsPsize = 1.;
+var LRDMPsize = 1.;
+var HRDMPsize = 1.;
 
 //particle default colors;
-var GasColor = [1., 0., 0., 1.];
-var LRDMColor = [1., 1., 0., 1.];
-var HRDMColor = [1., 1., 0., 1.];
-var StarsColor = [0., 0., 1., 1.];
+var GasColor = [1., 0., 0., 0.05];//0.05];
+var LRDMColor = [1., 1., 0., 0.05];
+var HRDMColor = [1., 1., 0., 0.05];
+var StarsColor = [0., 0., 1., 0.05];
 
 //Decimation
+var rMaxPlot = 5000;
+var pposMin = [0, 0, 0, 0];
+var pposMax = [0, 0, 0, 0];
+var partsLength = [0, 0, 0, 0];
 var Decimate = 1;
-var rDecimate = 100;
-var rDecimateFac = 5;
-var addDecimate = 100;
-var tickwait = 50;
+var tickwait = 1;
 var addtickwait = 50;
 var GasNmax = parts.Gas.Coordinates.length;
 var StarsNmax = parts.Stars.Coordinates.length;
 var LRDMNmax = parts.LowResDarkMatter.Coordinates.length;
 var HRDMNmax = parts.HighResDarkMatter.Coordinates.length;
 var drawit = true;
+var redraw = false;
 var tickN = 0
 
 //Filtering
@@ -468,11 +479,16 @@ var gasSliderInputs;
 var partsKeys = Object.keys(parts);
 var partsUse = {};
 
+//for frustum
+var zmax = 10000;
+var zmin = 0.1;
+var fov = 45.
+
 //set up the mvMatrix
 function setmvMatrix0()
 {
 	mat4.identity(mvMatrix0);
-	mat4.translate(mvMatrix0, [0., 0., zcamera]);
+	mat4.translate(mvMatrix0, camerapos);
 	mat4.rotate(mvMatrix0, degToRad(yrot), [1, 0, 0]);
 	mat4.rotate(mvMatrix0, degToRad(xrot), [0, 1, 0]);
 }
@@ -483,25 +499,32 @@ function handleResize(event){
 	canvas.height = window.innerHeight;
 	gl.viewportWidth = canvas.width;
 	gl.viewportHeight = canvas.height;
-	drawit = true;
+	redraw = true;
+	mat4.perspective(fov, gl.viewportWidth / gl.viewportHeight, zmin, zmax, pMatrix);
+
 }
 
 //handle Mouse events
 function handleMouseDown(event) {
+	//console.log(event.target.className)
+	if (event.target.className == "pTextInput" || event.target.className == "sp-preview-inner" || event.target.className == "dropbtn" || event.target.className == "FilterMaxTClass" || event.target.className == "FilterMinTClass"){
+		//tickN = 1;
+		//tickwait = addtickwait;
+		return;
+	}
     mouseDown = true;
+    redraw = true;
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
 }
-
 function handleMouseUp(event) {
     mouseDown = false;
 }
 
 function handleMouseMove(event) {    
-    if (!mouseDown) {
+    if (!mouseDown || event.target.id != "WebGL-canvas") {
         return;
     }
-
     var newX = event.clientX;
     var newY = event.clientY;
 
@@ -520,19 +543,18 @@ function handleMouseMove(event) {
         dyrot = deltaY / canvas.height;
     } 
     if (event.which == 2) {
-        dz = deltaY * 0.1;
+        dz = deltaY * 10.;
     }
 
     xrot += dxrot*fac;
-    xrot = xrot % 360.
+    xrot = xrot % 360.;
     yrot += dyrot*fac;
     yrot = yrot % 360.;
-    zcamera += dz;
+    camerapos[2] += dz;
+    //center[2] += dz;
     setmvMatrix0();
-    //rDecimate = Decimate + addDecimate;
-    rDecimate = addDecimate;
-    tickwait = addtickwait;
-    applyFilterDecimate();
+    redraw = true;
+ 	applyFilterDecimate(reset=true);
 }
 
 //https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
@@ -540,12 +562,13 @@ function handleMouseWheel(event)
 {
     // Determine the direction of the scroll (< 0 = up, > 0 = down).
     var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
-    zcamera += delta * 0.01;
+    //center[2] += delta * 0.01;
+    camerapos[2] += delta * 10.;
     setmvMatrix0();
-//    rDecimate = Decimate + addDecimate;
-	rDecimate = addDecimate;
+	tickN = 1;
     tickwait = addtickwait;
-    applyFilterDecimate();
+    redraw = true;
+    applyFilterDecimate(reset=true);
 
 }
 
@@ -567,7 +590,7 @@ function checkColor(event, color)
 	if (event.id == "StarsColorPicker"){
 		StarsColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
 	}
-	drawit = true;
+	redraw = true;	
 }
 
 function initNsliders(dovalues = false){
@@ -590,7 +613,9 @@ function setSliderHandle(i, value, parent) {
 	r[i] = value;
 	parent.noUiSlider.set(r);
 	GasMassRange[i] = value;
-	applyFilterDecimate();
+	//console.log(GasMassRange)
+	redraw = true;
+	mouseDown = false; //silly fix
 }
 // Listen to keydown events on the input field.
 function handleSliderText(input, handle) 
@@ -661,80 +686,84 @@ function initFilters(){
 		decimals: 3
 		})
 	});
-
+	gasSliderF.noUiSlider.on('mouseup', mouseDown=false); 
 	gasSliderF.noUiSlider.on('update', function(values, handle) {
 		gasSliderInputs[handle].value = values[handle];
 		GasMassRange[handle] = values[handle];
-		applyFilterDecimate();
+		//console.log(GasMassRange)
+		redraw = true;
+		mouseDown = true;
 	});
+
 	gasSliderInputs.forEach(handleSliderText);
 }
 
 function checkSlider(slider)
 {
+	tickN = 1;
 	if (slider.id == "GasRange"){
-		GasPsize = 0.001 * slider.value /100.;
+		GasPsize = slider.value / 100.;
 		document.getElementById("GasText").value = slider.value/100.;
 	}
 	if (slider.id == "StarsRange"){
-		StarsPsize = 0.001 * slider.value /100.;
+		StarsPsize = slider.value / 100.;
 		document.getElementById("StarsText").value = slider.value/100.;
 	}
 	if (slider.id == "LRDMRange"){
-		LRDMPsize = 0.001 * slider.value /100.;
+		LRDMPsize = slider.value / 100.;
 		document.getElementById("LRDMText").value = slider.value/100.;
 	}
 	if (slider.id == "HRDMRange"){
-		HRDMPsize = 0.001 * slider.value /100.;
+		HRDMPsize = slider.value / 100.;
 		document.getElementById("HRDMText").value = slider.value/100.;
 	}
 	if (slider.id == "DecimateRange"){
 		Decimate = Math.round(slider.value);
 		document.getElementById("DecimateText").value = slider.value;
 		initNsliders();
-		applyFilterDecimate();
-		tickwait = addtickwait;
+		applyFilterDecimate(reset=true);
 	}
 	if (slider.id == "GasNRange"){
 		document.getElementById("GasNText").value = slider.value;
 		GasNmax = Math.round(slider.value)
 	}
-	drawit = true;
+	redraw = true;
 }
+
 function checkText(input, event)
 {
+
 	var key=event.keyCode || event.which;
   	if (key==13){
+  		tickN = 1;
+		redraw = true;
   		if (input.id == "GasText"){
 			document.getElementById("GasRange").value = 100.*input.value;
-			GasPsize = 0.001 * input.value ;
+			GasPsize = input.value ;
 		}
 		if (input.id == "StarsText"){
 			document.getElementById("StarsRange").value = 100.*input.value;
-			StarsPsize = 0.001 * input.value ;
+			StarsPsize = input.value ;
 		}
 		if (input.id == "LRDMText"){
 			document.getElementById("LRDMRange").value = 100.*input.value;
-			LRDMPsize = 0.001 * input.value ;
+			LRDMPsize = input.value ;
 		}
 		if (input.id == "HRDMText"){
 			document.getElementById("HRDMRange").value = 100.*input.value;
-			HRDMPsize = 0.001 * input.value ;
+			HRDMPsize = input.value ;
 		}
 		if (input.id == "DecimateText"){
 			document.getElementById("DecimateRange").value = input.value;
 			Decimate = Math.round(input.value);
 			initNsliders();
-			applyFilterDecimate();
-			tickwait = addtickwait;
-
+			applyFilterDecimate(reset=true);
 		}
 		if (input.id == "GasNText"){
 			document.getElementById("GasNRange").value = input.value;
 			GasNmax = Math.round(input.value);
 		}  	
 	}
-	drawit = true;
 
 }
 
@@ -765,7 +794,8 @@ function checkPlotParts(checkbox)
         	plotHRDM = true;
         }
     }
-    drawit = true;
+    redraw = true;
+    pposMin = [0,0,0,0];
 }
 
 //initialize the shaders
@@ -824,13 +854,21 @@ function initBuffers() {
 	gl.enableVertexAttribArray(0);
 }
 
-
+function checkzeros(element, index, array){
+	return element == 0;
+}
 function drawScene() {
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 1e-10, 100.0, pMatrix);
-    
+    //llzeros = pposMin.every(checkzeros);
+	//if (allzeros){
+	//	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    //	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    //	console.log("clearing")
+    //}
+    //console.log(pposMin, pposMax);
+
     var partsColors = [GasColor, HRDMColor, LRDMColor, StarsColor];
     var partsScale = [GasPsize, HRDMPsize, LRDMPsize, StarsPsize];
     var plotParts = [plotGas, plotHRDM, plotLRDM, plotStars];
@@ -842,34 +880,36 @@ function drawScene() {
     var i=0;
     var j=0;
     var idraw;
-
+    var useAlpha;
+    //console.log(center)
     for (j = 0; j < partsColors.length; j++){
     	if (plotParts[j]){
+    		useAlpha = partsColors[j][3];
+			if (mouseDown || tickN < tickwait){
+				useAlpha = 1;
+			}
 			gl.uniform1f(shaderProgram.vScaleUniform, partsScale[j]);
 
         	var partsCoords = partsUse[partsKeys[j]].Coordinates;
 
-	    	imax = partsCoords.length;
-	    	
-	        gl.uniform4fv(shaderProgram.colorUniform, partsColors[j]);//partsColors[i]);
+	    	imax = partsCoords.length; 
+	        //gl.uniform4fv(shaderProgram.colorUniform, partsColors[j]);
+	       	gl.uniform4f(shaderProgram.colorUniform, partsColors[j][0], partsColors[j][1], partsColors[j][2], useAlpha);
 	        //console.log(idraw);
 	        idraw = [0,0,0,0];
 	        //console.log(partsCoords.length)
+	        //for (i = Math.max(0, pposMin[j] - rMaxPlot); i < imax; i++) {
 	        for (i = 0; i < imax; i++) {
 	        	if (idraw[j] > plotNmax[j]){
 	        		break;
 	        		//showpart = false;
 	        	}
 
-
 	        	idraw[j] += 1;
 
 	        	mvMatrix = mat4.create(mvMatrix0);
-	        		//mat4.identity(mvMatrix);
-		            //mat4.translate(mvMatrix, [0., 0., zcamera]);
-		            //mat4.rotate(mvMatrix, degToRad(yrot), [1, 0, 0]);
-		            //mat4.rotate(mvMatrix, degToRad(xrot), [0, 1, 0]);
-		        mat4.translate(mvMatrix, [partsCoords[i][0]*cfac + center[0], partsCoords[i][1]*cfac + center[1], partsCoords[i][2]*cfac + center[2]]);
+		        //whatever is added here to positions defines the center of rotation
+		        mat4.translate(mvMatrix, [partsCoords[i][0] + center[0], partsCoords[i][1] + center[1], partsCoords[i][2] + center[2]]);
 		        mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
 		        mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
 		        setMatrixUniforms();
@@ -879,6 +919,7 @@ function drawScene() {
 	        }
 	    }
     }
+    //console.log("idraw", idraw)
 }
 
 // from https://codepen.io/KryptoniteDove/post/load-json-file-locally-using-pure-javascript
@@ -918,7 +959,7 @@ function setCenter(coords){
         sum[1] += coords[i][1];
         sum[2] += coords[i][2];
     }
-    center = [-1.*sum[0]/coords.length*cfac, -1.*sum[1]/coords.length*cfac, -1.*sum[2]/coords.length*cfac];
+    center = [-1.*sum[0]/coords.length, -1.*sum[1]/coords.length, -1.*sum[2]/coords.length];
 }
 
 function calcLogMass(){
@@ -955,23 +996,34 @@ function initShowParts(){
 
 
 
-function applyFilterDecimate(){
+function applyFilterDecimate(reset=false){
+	//console.log("in applyFilterDecimate")
+    rotateFrustum();
 	drawit = true;
-	decm = Math.max(Decimate,rDecimate);
-	 
+
 //filter the mass, and also account for decimation
 	var i=0;
 	var j=0;
 	var jmax;
 	var mass;
-    for (i=0; i< partsKeys.length; i++){
+	//console.log(partsKeys)
+	if (mouseDown || tickN < tickwait || reset){
+		pposMin = [0,0,0,0];
+		pposMax = [0,0,0,0]
+	}
 
-    	partsUse[partsKeys[i]].Coordinates = [];
-    	jmax = Math.round(parts[partsKeys[i]].Coordinates.length / decm);
-   		for (j=0; j< parts[partsKeys[i]].Coordinates.length; j++){
-   			parts[partsKeys[i]].showpart[j] = true;
-//   			if ((j % decm != 0)){
-			if (j < jmax){
+    for (i=0; i< partsKeys.length; i++){
+    	//console.log(partsKeys[i])
+    	if (pposMin[i] == 0){
+    		partsUse[partsKeys[i]].Coordinates = [];
+    	}
+		jmax = Math.round(parts[partsKeys[i]].Coordinates.length / Decimate);
+    	var Nplotted = 0;
+    	//console.log(pposMin[i])
+   		for (j=pposMax[i]; j< jmax; j++){
+//test if it's in the frustum
+			if (testPointInFrustum(parts[partsKeys[i]].Coordinates[j])) {
+			//if (true){
 // this will be generalized later
 				if (partsKeys[i] == 'Gas'){
    					mass = parts[partsKeys[i]].logMass[j]; 
@@ -981,29 +1033,51 @@ function applyFilterDecimate(){
    				} else {
    					partsUse[partsKeys[i]].Coordinates.push(parts[partsKeys[i]].Coordinates[j]);
    				}
+   				Nplotted += 1;   
+   			}
+   			if (Nplotted >= rMaxPlot){
+   				break;
    			}
    		}
+//   		console.log("first", i,j, pposMin[i], pposMax[i])
+   		pposMin[i] = pposMax[i]
+   		pposMax[i] = j;
+//   		console.log("second", i,j, pposMin[i], pposMax[i])
+
    	}
+   	//console.log("N Gas particles",partsUse[partsKeys[0]].Coordinates.length, pposMin, drawit, Nplotted)
 }
 
-
+function checkalldrawn(){
+	for (var i=0; i< partsKeys.length; i++){
+		if (pposMax[i] < parts[partsKeys[i]].Coordinates.length){
+			return false;
+		}
+	}
+	return true;
+}
 
 function tick() {
-	if (drawit){
+	if (drawit || redraw){
 	    tickN += 1;
-	    if (tickN > tickwait && rDecimate > Decimate){
-	    	rDecimate = Math.max(rDecimate - rDecimateFac, Decimate);
-	    	applyFilterDecimate();
-	    	tickN = 0;
-	    	tickwait = 1;
+	    //console.log(tickN, tickwait)
+	    if (!checkalldrawn() || redraw){
+	    	//console.log("calling applyFilterDecimate")
+	    	applyFilterDecimate(reset = redraw);
+	    	//drawit = false;
+	    	//console.log(checkalldrawn(), pposMin, pposMax, drawit, tickN, tickwait, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
+	    	//console.log("drawScene")
+	    	drawScene();
+	    	redraw = false;
+	    	//drawit = false;
 	    }
-	    console.log(Decimate, rDecimate, drawit);
-	    drawScene();
-	    if (Decimate >= rDecimate){
+	    if (checkalldrawn()){
+	    	console.log("all drawn", pposMin, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
 	    	drawit = false;
+	    	tickN = 1;
 	    }
 
-	}	
+	}
 //I could probaby be smarter about not redrawing unless something changes
 	requestAnimFrame(tick);
 
@@ -1011,23 +1085,28 @@ function tick() {
 
 function webGLStart() {
     canvas = document.getElementById("WebGL-canvas");
+   	initGL();
+
+    setCenter(parts.Gas.Coordinates);
+    //console.log("initfrustum")
+    initFrustumPlanes();
+    rotateFrustum();
+    setmvMatrix0();
+
     calcLogMass();
     initShowParts();
-   	initGL();
     initShaders();
     initBuffers();
     initNsliders(dovalues=true);
     initFilters();
-    setmvMatrix0();
-    if (Decimate > 1 || rDecimate > 1){
-    	applyFilterDecimate();
-    }
+    mouseDown = false;  //silly fix
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.enable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     canvas.onmousedown = handleMouseDown;
+    document.onmousedown = handleMouseDown;
     document.onmouseup = handleMouseUp;
     document.onmousemove = handleMouseMove;
     canvas.addEventListener('wheel', handleMouseWheel);
@@ -1043,8 +1122,13 @@ function webGLStart() {
 //         setCenter(parts.Gas.Coordinates);
 //         tick();
 //    });
-    setCenter(parts.Gas.Coordinates);
+
+
+    mat4.perspective(fov, gl.viewportWidth / gl.viewportHeight, zmin, zmax, pMatrix);
+
     drawit = true;
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     tick();
 }
 </script>
@@ -1101,7 +1185,9 @@ function webGLStart() {
 
 <body onload="webGLStart();">
 
-  <div class="container" id="ContentContainer">
+  <div> <!-- class="container" id="ContentContainer"> -->
+
+  	<div class="UIcontainer"> 
 <!-- Full Screen -->
     	<button id = "fullScreenButton" class="button" style="top:10px" onclick="fullscreen();"><span>Fullscreen</span></button>
 <!-- Decimation -->
@@ -1117,8 +1203,8 @@ function webGLStart() {
   				<input checked id="GasCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
   				<span class="slideroo"></span>
 			</label>
-    		<input id="GasRange" type="range" min="0" max="500" value="10" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
-    		<input id="GasText" type="text" class="pTextInput" value="0.1" autocomplete="off" onkeypress="checkText(this, event)">
+    		<input id="GasRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+    		<input id="GasText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
     		<input type="text" id="GasColorPicker"/>
     		<button onclick="showFunction()" class="dropbtn">&#x25BC</button>
     		<div id="myDropdown" class="dropdown-content">
@@ -1145,8 +1231,8 @@ function webGLStart() {
   				<input checked id="StarsCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
   				<span class="slideroo"></span>
 	  		</label>
-      		<input id="StarsRange" type="range" min="0" max="500" value="10" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
-	  		<input id="StarsText" type="text" class="pTextInput" value="0.1" autocomplete="off" onkeypress="checkText(this, event)">
+      		<input id="StarsRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="StarsText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
     		<input type="text" id="StarsColorPicker"/>
 
       	</div>
@@ -1157,8 +1243,8 @@ function webGLStart() {
   				<input checked id="LRDMCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
   				<span class="slideroo"></span>
 	  		</label>
-      		<input id="LRDMRange" type="range" min="0" max="500" value="10" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
-	  		<input id="LRDMText" type="text" class="pTextInput" value="0.1" autocomplete="off" onkeypress="checkText(this, event)">
+      		<input id="LRDMRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="LRDMText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
     		<input type="text" id="LRDMColorPicker"/>
       	</div>
 <!-- HRDM -->
@@ -1168,11 +1254,11 @@ function webGLStart() {
   				<input checked id="HRDMCheck" type="checkbox" autocomplete="off" onchange="checkPlotParts(this)">
   				<span class="slideroo"></span>
 	  		</label>
-      		<input id="HRDMRange" type="range" min="0" max="500" value="10" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
-	  		<input id="HRDMText" type="text" class="pTextInput" value="0.1" autocomplete="off" onkeypress="checkText(this, event)">
+      		<input id="HRDMRange" type="range" min="0" max="500" value="100" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+	  		<input id="HRDMText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
      		<input type="text" id="HRDMColorPicker"/>
       	</div>
-
+    </div>
 <!-- WebGL canvas -->
       <canvas oncontextmenu="return false;" id="WebGL-canvas" style="margin-left:auto; margin-right:0; display:block; padding:0px; background-color:black; position:absolute; top:0; left:0" ></canvas> 
 
@@ -1183,7 +1269,7 @@ function webGLStart() {
 
 /* for color pickers*/
 $("#GasColorPicker").spectrum({
-    color: "rgb(255,0,0)",
+    color: "rgba(255,0,0, 0.05)",
     flat: false,
     showInput: true,
     showInitial: false,
@@ -1199,7 +1285,7 @@ $("#GasColorPicker").spectrum({
     });
 
 $("#StarsColorPicker").spectrum({
-    color: "rgb(0,0,255)",
+    color: "rgba(0,0,255, 0.05)",
     flat: false,
     showInput: true,
     showInitial: false,
@@ -1215,7 +1301,7 @@ $("#StarsColorPicker").spectrum({
     });
 
 $("#LRDMColorPicker").spectrum({
-    color: "rgb(255,255,0)",
+    color: "rgba(255,255,0, 0.05)",
     flat: false,
     showInput: true,
     showInitial: false,
@@ -1231,7 +1317,7 @@ $("#LRDMColorPicker").spectrum({
     });
 
 $("#HRDMColorPicker").spectrum({
-    color: "rgb(255,255,0)",
+    color: "rgba(255,255,0, 0.05)",
     flat: false,
     showInput: true,
     showInitial: false,
