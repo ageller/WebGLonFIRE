@@ -1,0 +1,1543 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+
+<!-- particle data -->
+<script src="snap440.json"></script>
+
+  <!-- using a couple functions from these guys, yes I'm a WebGL noob -->
+<script type="text/javascript" src="resources/webgl-utils.js"></script>
+<script type="text/javascript" src="resources/glMatrix-0.9.5.min.js"></script>
+
+<!-- for the color picker = spectrum : https://github.com/bgrins/spectrum -->
+<link rel="stylesheet" href="resources/spectrum.css" />
+<script src="resources/jquery-3.2.1.min.js"></script> 
+<script src="resources/spectrum.js"></script>
+
+<!-- noUIslider for filtering -->
+<link href="resources/nouislider.min.css" rel="stylesheet">
+<script src="resources/nouislider.min.js"></script>
+
+<!-- wNumb number formatter -->
+<script src="resources/wNumb.js"></script>
+
+<!-- d3 -->
+<script src="resources/d3.v4.10.2.min.js"></script>
+
+<!-- frustum culling from Alex Gurvich -->
+<script src="frustum_culling.js"></script>
+
+<style>
+.UIcontainer{
+	z-index:2; 
+	display:inline-block; 
+	position:absolute;
+	top:10px;
+	left:10px;
+	border-color:#505050;
+	border-style:solid;
+	border-width: 2px 2px 2px 2px
+}
+
+.UItopbar{
+	background-color:#d3d3d3;
+	height: 10px;
+	opacity: 0.7;
+  	transition: opacity: 0.15s;
+
+}
+.UItopbar:hover {
+	opacity: 1;
+}
+
+.button {
+  z-index:2;
+  height:30px;
+  width:290px;
+  padding: 5px;
+  margin:5px;
+  margin-bottom:0px;
+  cursor: pointer;
+  font-size:15px;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  overflow: hidden;
+  border: none;
+  opacity: 0.7;
+  background-color: #339999;
+  transition: opacity: 0.15s;
+}
+.button:hover {
+	opacity: 1;
+}
+.button:active {
+  background-color: #4CAF50;
+}
+.button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.button span:after {
+  content: '\00bb';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+.button:hover span {
+  padding-right: 25px;
+}
+
+.button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+
+/* particle UI */
+.particleDiv {
+  z-index:2;
+  background-color: #d3d3d3;
+  width:280px;
+  padding:5px;
+  margin:5px;
+  height:20px;
+  opacity: 0.8;
+  transition: opacity .15s;
+}
+.particleDiv:hover {
+    opacity: 1;
+}
+.pLabelDiv {
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:50px;
+}
+.pTextInput{
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:30px;
+}
+/* point and filter size slider */
+.sliderps {
+    /*-webkit-appearance: scrollbarthumb-horizontal;*/
+    width: 100px;
+    margin:0;
+    padding:0;
+    height: 20px;
+    background: #d3d3d3;
+    outline: none;
+}
+
+.sliderps::-webkit-slider-thumb {
+    -webkit-appearance: none; 
+    appearance: none;
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+.sliderps::-moz-range-thumb {
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+/* onoff slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 20px;
+}
+
+.switch input {display:none;}
+
+.slideroo {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding:0;
+  margin:0;
+  background-color: #ffffff;
+  transition: transform .2s;
+}
+
+.slideroo:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #d3d3d3;
+  transition: transform .2s;
+}
+
+input:checked + .slideroo {
+  background-color: #000000;
+}
+
+input:focus + .slideroo {
+  box-shadow: 0 0 1px #000000;
+}
+
+input:checked + .slideroo:before {
+  -webkit-transform: translateX(8px);
+  -ms-transform: translateX(8px);
+  transform: translateX(8px);
+}
+
+/* Rounded sliders */
+.slideroo.round {
+  border-radius: 34px;
+}
+
+.slideroo.round:before {
+  border-radius: 50%;
+}
+
+/* color picker = spectrum */
+.sp-replacer{
+	border:0px;
+	z-index:2;
+	position:absolute;
+	left:230px;
+ 	margin:0;
+ 	margin-top:-5px;
+ 	height:20px;
+ 	width:27px;
+ 	background:#d3d3d3;
+}
+.sp-replacer:hover, .sp-replacer.sp-active  {
+	border:0;
+}
+.sp-picker-container{
+	border:0;
+}
+
+/* dropdown menu */
+.dropbtn {
+	position:relative;
+	left: 40px;
+	top:-5px;
+	height: 30px;
+    background-color: #d3d3d3;
+    padding: 2px;
+    padding-left:5px;
+    font-size: 16px;
+    cursor: pointer;
+    border:0;
+    color:white;
+}
+.dropbtn:hover{
+	color:black;
+}
+.dropdown {
+    display: inline-block;
+}
+.dropdown-content {
+    display: none;
+    position: relative;
+    background-color: #a3a3a3;
+    width: 290px;
+    padding:0;
+    margin:-5px;
+    overflow: auto;
+    z-index: 2;
+    left:0;
+	min-height:100px;
+}
+.dropdown-content div {
+    color: black;
+    text-decoration: none;
+    display: block;
+}
+.show {display:block;}
+
+.FilterClass{
+	position:absolute;
+	margin-top:10px;
+	left:110px;
+	width:130px;
+	height:20px;
+}
+.FilterClassLabel{
+  position:absolute; 
+  left:-100px;
+  top:-5px;
+}
+.FilterMinTClass{
+	position:absolute;
+	top:-5px;
+	left:-50px;
+	width:40px;
+	height:10px;
+	padding:2px;
+	color:black;
+}
+.FilterMaxTClass{
+	position:absolute;
+	top:-5px;
+	left:130px;
+	width:40px;
+	height:10px;
+	padding:2px;
+}
+.noUi-target{
+  cursor: pointer;
+}
+.noUi-connect{
+	background:black;
+}
+.noUi-handle{
+  cursor: pointer;
+	background:black;
+	box-shadow:none;
+	border-radius: 0;
+  border:1px solid #d3d3d3;
+}
+.noUi-horizontal {
+  height: 10px;
+}
+.noUi-horizontal .noUi-handle {
+    width: 10px;
+    left: -5px;
+    height: 22px;
+    top:-8px;
+}
+.noUi-handle:before,
+.noUi-handle:after {
+  height: 0px;
+  width: 0px;
+}
+.NdDiv{
+	padding:5px; 
+	height:20px; 
+	display:inline-block; 
+	width:283px
+}
+</style>
+
+<title>WebGLonFIRE</title>
+
+
+<!--Fullscreen query-->
+<script>
+
+var saveWidth = 0.;
+var saveHeight = 0.;
+
+function fullscreen(){
+ //   var elem = document.getElementById('WebGL-canvas');
+    var elem = document.getElementById('ContentContainer');
+    saveWidth = elem.width;
+    saveHeight = elem.height;
+    elem.width = screen.width;
+    elem.height = screen.height;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+    } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+    }
+    document.getElementById("fullScreenButton").style.visibility = "hidden"
+
+}
+
+if (document.addEventListener)
+{
+    document.addEventListener('webkitfullscreenchange', exitHandler, false);
+    document.addEventListener('mozfullscreenchange', exitHandler, false);
+    document.addEventListener('fullscreenchange', exitHandler, false);
+    document.addEventListener('MSFullscreenChange', exitHandler, false);
+}
+
+function exitHandler()
+{
+    //var elem = document.getElementById('WebGL-canvas');
+    var elem = document.getElementById('ContentContainer');
+
+    if (document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenElement != null){
+//    	document.getElementById("fullScreenButton").style.visibility = "hidden"
+    } else {
+    	document.getElementById("fullScreenButton").style.visibility = "visible"
+        elem.width = saveWidth;
+        elem.height = saveHeight;
+    }
+
+}
+
+</script>
+
+<!-- The main attraction -->
+<script type="text/javascript">
+
+var gl;
+var canvas; 
+var shaderProgram;
+var mvMatrix = mat4.create();
+var mvMatrix0 = mat4.create();
+var pMatrix = mat4.create();
+var defHeight = 786;
+var defWidth = 1024;
+
+var VertexPositionBuffer;
+
+//for mouse events
+var mouseDown = false;
+var lastMouseX = null;
+var lastMouseY = null;
+var xrot = 0.;
+var yrot = 0.;
+var dz = 0.;
+var camerapos = [0., 0., -600];
+var friction = 1.;
+var df = 0.0003;
+
+//positions
+var center = [0., 0., -50.];
+
+//plotting fields
+var plotGas = true;
+var plotStars = true;
+var plotLRDM = true;
+var plotHRDM = true;
+
+//particle sizes
+var GasPsize = 1.;
+var StarsPsize = 1.;
+var LRDMPsize = 1.;
+var HRDMPsize = 1.;
+
+//particle default colors;
+var GasColor = [1., 0., 0., 0.05];//0.05];
+var LRDMColor = [1., 1., 0., 0.05];
+var HRDMColor = [1., 1., 0., 0.05];
+var StarsColor = [0., 0., 1., 0.05];
+
+//Decimation
+var rMaxPlot = 5000;
+var pposMin = [0, 0, 0, 0];
+var pposMax = [0, 0, 0, 0];
+var partsLength = [0, 0, 0, 0];
+var Decimate = 1;
+var tickwait = 1;
+var addtickwait = 50;
+var drawit = true;
+var redraw = false;
+var tickN = 0
+
+//Filtering
+//I need to add a small factor because the precision of the noUiSlider effects the filtering
+var SliderF = {};
+var SliderTmin = {};
+var SliderTmax = {};
+var SliderInputs = {};
+
+var partsKeys = Object.keys(parts);
+var partsUse = {};
+
+//for frustum
+var zmax = 10000;
+var zmin = 0.1;
+var fov = 45.
+
+//set up the mvMatrix
+function setmvMatrix0()
+{
+	mat4.identity(mvMatrix0);
+	mat4.translate(mvMatrix0, camerapos);
+	mat4.rotate(mvMatrix0, degToRad(yrot), [1, 0, 0]);
+	mat4.rotate(mvMatrix0, degToRad(xrot), [0, 1, 0]);
+}
+
+//handle window resize event
+function handleResize(event){
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	gl.viewportWidth = canvas.width;
+	gl.viewportHeight = canvas.height;
+	redraw = true;
+	mat4.perspective(fov, gl.viewportWidth / gl.viewportHeight, zmin, zmax, pMatrix);
+
+}
+
+//handle Mouse events
+function handleMouseDown(event) {
+	//console.log(event.target.className)
+	if (event.target.className == "pTextInput" || event.target.className == "sp-preview-inner" || event.target.className == "dropbtn" || event.target.className == "FilterMaxTClass" || event.target.className == "FilterMinTClass" || event.target.className == "UItopbar"){
+		//tickN = 1;
+		//tickwait = addtickwait;
+		return;
+	}
+    mouseDown = true;
+    redraw = true;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+}
+function handleMouseUp(event) {
+    mouseDown = false;
+}
+
+function handleMouseMove(event) {    
+    if (!mouseDown || event.target.id != "WebGL-canvas") {
+        return;
+    }
+    var newX = event.clientX;
+    var newY = event.clientY;
+
+    var deltaX = newX - lastMouseX
+    var deltaY = newY - lastMouseY;
+
+    lastMouseX = newX
+    lastMouseY = newY;
+
+    var dxrot = 0.;
+    var dyrot = 0.;
+    var fac = 200.;
+    dz = 0.;
+    if (event.which == 1 || event.which == 3){
+        dxrot = deltaX / canvas.width;
+        dyrot = deltaY / canvas.height;
+    } 
+    if (event.which == 2) {
+        dz = deltaY * 10.;
+    }
+
+    xrot += dxrot*fac;
+    xrot = xrot % 360.;
+    yrot += dyrot*fac;
+    yrot = yrot % 360.;
+    camerapos[2] += dz;
+    //center[2] += dz;
+    setmvMatrix0();
+    redraw = true;
+ 	applyFilterDecimate(reset=true);
+}
+
+//https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
+function handleMouseWheel(event) 
+{
+    // Determine the direction of the scroll (< 0 = up, > 0 = down).
+    var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
+    //center[2] += delta * 0.01;
+    camerapos[2] += delta * 10.;
+    setmvMatrix0();
+	tickN = 1;
+    tickwait = addtickwait;
+    redraw = true;
+    applyFilterDecimate(reset=true);
+
+}
+
+
+
+//functions to check sizes of particles
+function checkColor(event, color)
+{
+	rgb = color.toRgb();
+	if (event.id == "GasColorPicker"){
+		GasColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "LRDMColorPicker"){
+		LRDMColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "HRDMColorPicker"){
+		HRDMColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	if (event.id == "StarsColorPicker"){
+		StarsColor = [rgb.r/255., rgb.g/255., rgb.b/255., rgb.a];
+	}
+	redraw = true;	
+}
+
+function initNsliders(dovalues = false){
+	var i = 0;
+	for (i=0; i< partsKeys.length; i++){
+		p = partsKeys[i];
+		/* Gas N particle */
+		var Nr = document.getElementById(p+"NRange");
+		var Nt = document.getElementById(p+"NText");
+		Np = Math.round(parts[p].Coordinates.length/Decimate);
+		if (Nr != null && Nt != null){
+			Nr.max = Np;
+			if (dovalues){
+				Nr.value = Np;
+				Nt.value = Np;
+				plotNmax[i] = Np;
+			}
+		}
+	}
+	drawit = true;
+}
+
+// Filters
+function setSliderHandle(i, value, parent) {
+	var r = [null,null];
+	r[i] = value;
+	parent.noUiSlider.set(r);
+	console.log("parent",parent)
+	filterLims.Gas.log10Masses[i] = value;
+	redraw = true;
+	mouseDown = false; //silly fix
+}
+// Listen to keydown events on the input field.
+function handleSliderText(input, handle) 
+{
+	input.addEventListener('change', function(){
+		setSliderHandle(handle, this.value, this.parent);
+	});
+	input.addEventListener('keydown', function( e ) {
+		var values = input.parent.noUiSlider.get();
+		var value = Number(values[handle]);
+		// [[handle0_down, handle0_up], [handle1_down, handle1_up]]
+		var steps = input.parent.noUiSlider.options.steps;
+		// [down, up]
+		var step = steps[handle];
+		var position;
+		// 13 is enter,
+		// 38 is key up,
+		// 40 is key down.
+		switch ( e.which ) {
+			case 13:
+				setSliderHandle(handle, this.value, input.parent);
+				break;
+			case 38:
+				// Get step to go increase slider value (up)
+				// false = no step is set
+				position = step[1];
+				if ( position === false ) {
+					position = 1;
+				}
+				// null = edge of slider
+				if ( position !== null ) {
+					setSliderHandle(handle, value + position, input.parent);
+				}
+				break;
+			case 40:
+				position = step[0];
+				if ( position === false ) {
+					position = 1;
+				}
+				if ( position !== null ) {
+					setSliderHandle(handle, value - position, input.parent);
+				}
+				break;
+		}
+	});
+};
+
+
+function initFilters(){
+
+//mass only for now
+
+	var i =0;
+	for (i=0; i<partsKeys.length; i++){
+		p = partsKeys[i];
+		SliderF[p] = document.getElementById(p+'MassFilterSlider');
+		SliderTmin[p] = document.getElementById(p+'MassFilterMinT');
+		SliderTmax[p] = document.getElementById(p+'MassFilterMaxT');
+		if (SliderF[p] != null && SliderTmin[p] != null && SliderTmax[p] != null && filterLims[p].log10Masses != null){
+			SliderInputs[p] = [SliderTmin[p], SliderTmax[p]];
+			SliderInputs[p][0].parent = SliderF[p];
+			SliderInputs[p][1].parent = SliderF[p];
+			min = filterLims[p].log10Masses[0];
+			max = filterLims[p].log10Masses[1];
+
+			noUiSlider.create(SliderF[p], {
+				start: [min, max],
+				connect: true,
+				tooltips: [false, false],
+				steps: [[0.001,0.001],[0.001,0.001]],
+				range: {
+					'min': [min],
+					'max': [max]
+				},
+				format: wNumb({
+				decimals: 3
+				})
+			});
+			SliderF[p].noUiSlider.on('mouseup', mouseDown=false); 
+			SliderF[p].noUiSlider.on('update', function(values, handle) {
+// PROBLEM!! We don't know p... fix for mass
+				p = this.target.id.slice(0,-16);
+				SliderInputs[p][handle].value = values[handle];
+				filterLims[p].log10Masses[handle] = values[handle];
+				//console.log("in slider", p, filterLims[p].log10Masses, SliderInputs[p][handle])
+				redraw = true;
+				mouseDown = true;
+			});
+
+			SliderInputs[p].forEach(handleSliderText);
+		}
+	}
+}
+
+function checkSlider(slider)
+{
+	tickN = 1;
+
+//N sliders
+	var type = slider.id.slice(-6); 
+	if (type == 'NRange'){
+		pID = slider.id.slice(0,-6); // remove  "Nrange" from id
+		var i = getPi(pID);
+		document.getElementById(pID+"NText").value = slider.value;
+		plotNmax[i] = Math.round(slider.value)
+	}
+
+	if (slider.id == "GasRange"){
+		GasPsize = slider.value / 100.;
+		document.getElementById("GasText").value = slider.value/100.;
+	}
+	if (slider.id == "StarsRange"){
+		StarsPsize = slider.value / 100.;
+		document.getElementById("StarsText").value = slider.value/100.;
+	}
+	if (slider.id == "LRDMRange"){
+		LRDMPsize = slider.value / 100.;
+		document.getElementById("LRDMText").value = slider.value/100.;
+	}
+	if (slider.id == "HRDMRange"){
+		HRDMPsize = slider.value / 100.;
+		document.getElementById("HRDMText").value = slider.value/100.;
+	}
+	if (slider.id == "DecimateRange"){
+		Decimate = Math.round(slider.value);
+		document.getElementById("DecimateText").value = slider.value;
+		initNsliders();
+		applyFilterDecimate(reset=true);
+	}
+
+	redraw = true;
+}
+
+function checkText(input, event)
+{
+
+	var key=event.keyCode || event.which;
+  	if (key==13){
+  		tickN = 1;
+		redraw = true;
+
+		//N sliders
+		var type = input.id.slice(-5); 
+		//console.log(type);
+		if (type == 'NText'){
+			pID = input.id.slice(0,-5); // remove  "NText" from id
+			var i = getPi(pID);
+			document.getElementById(pID+"NRange").value = input.value;
+			plotNmax[i] = Math.round(input.value)
+		}
+
+
+  		if (input.id == "GasText"){
+			document.getElementById("GasRange").value = 100.*input.value;
+			GasPsize = input.value ;
+		}
+		if (input.id == "StarsText"){
+			document.getElementById("StarsRange").value = 100.*input.value;
+			StarsPsize = input.value ;
+		}
+		if (input.id == "LRDMText"){
+			document.getElementById("LRDMRange").value = 100.*input.value;
+			LRDMPsize = input.value ;
+		}
+		if (input.id == "HRDMText"){
+			document.getElementById("HRDMRange").value = 100.*input.value;
+			HRDMPsize = input.value ;
+		}
+		if (input.id == "DecimateText"){
+			document.getElementById("DecimateRange").value = input.value;
+			Decimate = Math.round(input.value);
+			initNsliders();
+			applyFilterDecimate(reset=true);
+		}
+ 	
+	}
+
+}
+
+//function to check which types to plot
+function checkPlotParts(checkbox)
+{
+	if (checkbox.id == "GasCheck"){
+    	plotGas = false;
+    	if (checkbox.checked){
+       		plotGas = true;
+    	}
+    } 
+    if (checkbox.id == "StarsCheck"){
+        plotStars = false;
+	   	if (checkbox.checked){
+			plotStars = true;
+    	}
+    }
+    if (checkbox.id == "LRDMCheck"){
+    	plotLRDM = false;
+   	 	if (checkbox.checked){
+        	plotLRDM = true;
+        }
+    }
+    if (checkbox.id == "HRDMCheck"){
+    	plotHRDM = false;
+    	if (checkbox.checked){
+        	plotHRDM = true;
+        }
+    }
+    redraw = true;
+}
+
+//initialize the shaders
+function initShaders() {
+
+    //Shader compilation
+    vertexShader = createShaderFromScriptElement(gl, "vertex-shader");
+    fragmentShader = createShaderFromScriptElement(gl, "fragment-shader");
+    shaderProgram = gl.createProgram();
+    gl.attachShader(shaderProgram, vertexShader);
+    gl.attachShader(shaderProgram, fragmentShader);
+    gl.linkProgram(shaderProgram);
+
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert("Could not initialise shaders");
+    }
+
+    gl.useProgram(shaderProgram);
+
+    //Uniform location
+    gl.bindAttribLocation(shaderProgram, 0, 'aVertexPosition');
+
+    shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.resUniform = gl.getUniformLocation(shaderProgram, "resolution");
+    shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "color");
+    shaderProgram.vScaleUniform = gl.getUniformLocation(shaderProgram, "uVertexScale");
+
+}    
+
+// for moving and rotating objects
+function degToRad(degrees) {
+    return degrees * Math.PI / 180;
+}
+
+function setMatrixUniforms() {
+    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+}
+
+// initialize the buffer(s) that contain the vertices
+// this is just a simple quad (billboard)
+function initBuffers() {
+    VertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, VertexPositionBuffer);
+    vertices = [
+         1.0,  1.0,  0.0,
+        -1.0,  1.0,  0.0,
+         1.0, -1.0,  0.0,
+        -1.0, -1.0,  0.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = 4;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(0);
+}
+
+function checkzeros(element, index, array){
+	return element == 0;
+}
+function drawScene() {
+	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // This is here in case I figure out how to get the requestAnimationFrame to allow stop clearing the buffer.  Otherwise, it should probably be done every time.
+    //allzeros = pposMin.every(checkzeros);
+	//if (allzeros){
+	//	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    //	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    //	//console.log("clearing")
+    //}
+    //console.log(pposMin, pposMax);
+
+    var partsColors = [GasColor, HRDMColor, LRDMColor, StarsColor];
+    var partsScale = [GasPsize, HRDMPsize, LRDMPsize, StarsPsize];
+    var plotParts = [plotGas, plotHRDM, plotLRDM, plotStars];
+    //console.log(plotNmax)
+
+
+    gl.uniform2f(shaderProgram.resUniform, canvas.width/defWidth, canvas.height/defHeight);
+    var i=0;
+    var j=0;
+    var idraw = [0, 0, 0, 0];
+    var useAlpha = 1;
+    //console.log(center)
+    for (j = 0; j < partsColors.length; j++){
+    	if (plotParts[j]){
+    		useAlpha = partsColors[j][3];
+    		//useAlpha = 1;
+			if (mouseDown || tickN < tickwait){
+				useAlpha = 1;
+			}
+			gl.uniform1f(shaderProgram.vScaleUniform, partsScale[j]);
+
+        	var partsCoords = partsUse[partsKeys[j]].Coordinates;
+
+	    	imax = partsCoords.length; 
+	    	//console.log(j, imax)
+	        //gl.uniform4fv(shaderProgram.colorUniform, partsColors[j]);
+	       	gl.uniform4f(shaderProgram.colorUniform, partsColors[j][0], partsColors[j][1], partsColors[j][2], useAlpha);
+	        //console.log(idraw);
+	        //console.log(partsCoords.length)
+	        //for (i = Math.max(0, pposMin[j] - rMaxPlot); i < imax; i++) {
+	        for (i = 0; i < imax; i++) {
+	        //console.log(j,pposMin[j], imax);
+
+	        // this would be nice, but I can't figure out how to stop the frame from clearing between calls to drawScene.  I guess requestAnimationFrame swaps the buffers, but the following buffer knows nothing of the previous buffer.  Maybe, if I could copy the current buffer to a texture, and then display that texture, it could work, but would that slow down performance?
+	        //for (i = pposMin[j]; i < imax; i++) {
+
+	        //var N = imax - pposMin[j];
+	        //var dN = Math.floor(N/4.);
+			//var imn = pposMin[j];
+	        //var imx = imn + dN;
+	        //for (k = 0; k < 3; k++){
+	        //imn += k*dN
+	        //imx += k*dN
+	        //console.log(j, k, imn,imx, imax)
+	        //for (i = imn; i < imx; i++) {
+
+	        	if (idraw[j] > plotNmax[j]){
+	        		break;
+	        		//showpart = false;
+	        	}
+
+	        	idraw[j] += 1;
+
+	        	mvMatrix = mat4.create(mvMatrix0);
+		        //whatever is added here to positions defines the center of rotation
+		        mat4.translate(mvMatrix, [partsCoords[i][0] + center[0], partsCoords[i][1] + center[1], partsCoords[i][2] + center[2]]);
+		        mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
+		        mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
+		        setMatrixUniforms();
+
+		        gl.drawArrays(gl.TRIANGLE_STRIP, 0, VertexPositionBuffer.numItems);
+		        
+	        }
+	    }
+    }
+	//}
+    //drawit = false
+    //redraw = false
+    //console.log("idraw", idraw, plotNmax, plotParts)
+}
+
+// from https://codepen.io/KryptoniteDove/post/load-json-file-locally-using-pure-javascript
+function loadJSON(callback) {   
+
+    var xobj = new XMLHttpRequest();
+	xobj.overrideMimeType("application/json");
+    xobj.open('GET', 'snap440.json', true); 
+    xobj.onreadystatechange = function () {
+          if (xobj.readyState == 4 && xobj.status == "200") {
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+            callback(xobj.responseText);
+          }
+    };
+    xobj.send(null);  
+ }
+
+function initGL() {
+    try {
+        //gl = getWebGLContext(canvas);
+        gl = canvas.getContext("webgl");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+    } catch (e) {
+    }
+    if (!gl) {
+        alert("Could not initialise WebGL, sorry !");
+    }
+}
+
+function setCenter(coords){
+    var sum = [0., 0., 0.];
+    for( var i = 0; i < coords.length; i++ ){
+        sum[0] += coords[i][0];
+        sum[1] += coords[i][1];
+        sum[2] += coords[i][2];
+    }
+    center = [-1.*sum[0]/coords.length, -1.*sum[1]/coords.length, -1.*sum[2]/coords.length];
+}
+
+
+function calcFilterLimits(fkey){
+//calculate log10 of mass for Gas (this should be in input file)
+   	
+	var j=0;
+	for (j=0; j< partsKeys.length; j++){
+		p = partsKeys[j]
+		if (parts[p][fkey] != null){
+		   	var i=0;
+		   	min = parts[p][fkey][i];
+		   	max = parts[p][fkey][i];
+		   	for (i=0; i< parts[p][fkey].length; i++){
+		   		min = Math.min(min, parts[p][fkey][i]);
+		   		max = Math.max(max, parts[p][fkey][i]);
+		   	}
+		   	//console.log(p,fkey, "min,max",min,max)
+		   	min -= 0.001;
+		   	max += 0.001;
+		   	filterLims[p][fkey] = [min, max];
+		}
+	}
+}
+
+function initShowParts(){
+	//I wonder if I should create a separate parts so that I don't have to loop over the entire array
+	partsUse = {};
+	for (var i=0; i< partsKeys.length; i++){
+		partsUse[partsKeys[i]] = {"Coordinates" : []};	
+	}
+	var i=0;
+	var j=0;
+   	for (i=0; i< partsKeys.length; i++){
+   		parts[partsKeys[i]].showpart = []
+   		for (j=0; j< parts[partsKeys[i]].Coordinates.length; j++){
+   			parts[partsKeys[i]].showpart.push(true);
+   		}
+   	}
+}
+
+
+
+function applyFilterDecimate(reset=false){
+	//console.log("in applyFilterDecimate")
+    rotateFrustum();
+	drawit = true;
+
+//filter the mass, and also account for decimation
+	var i=0;
+	var j=0;
+	var jmax;
+	var mass;
+	//console.log(partsKeys)
+	if (mouseDown || tickN < tickwait || reset){
+		pposMin = [0,0,0,0];
+		pposMax = [0,0,0,0];
+	}
+
+    for (i=0; i< partsKeys.length; i++){
+    	p = partsKeys[i]
+    	//console.log(partsKeys[i])
+    	if (pposMax[i] == 0){
+    		//console.log("resetting partsUse",i)
+    		partsUse[p].Coordinates = [];
+    	}
+		jmax = Math.round(parts[p].Coordinates.length / Decimate);
+		pposMin[i] = partsUse[p].Coordinates.length;
+    	var Nplotted = 0;
+    	//console.log(i, jmax, pposMin[i], pposMax[i])
+    	//if (pposMax[i] < jmax){console.log("drawing",i)}
+   		for (j=pposMax[i]; j< jmax; j++){
+//test if it's in the frustum
+			if (testPointInFrustum(parts[p].Coordinates[j])) {
+			//if (true){
+// this will be generalized later
+   				if (parts[p].log10Masses != null) {
+
+   					mass = parts[p].log10Masses[j]; 
+					if ( mass < filterLims[p].log10Masses[1] && mass > filterLims[p].log10Masses[0] ){
+   						partsUse[p].Coordinates.push(parts[p].Coordinates[j]);
+   					}
+   				} else {
+   					partsUse[p].Coordinates.push(parts[p].Coordinates[j]);
+   				}
+   				Nplotted += 1;   
+   			}
+   			if (Nplotted >= rMaxPlot){
+   				break;
+   			}
+   		}
+   		//console.log("first", i,j, pposMin[i], pposMax[i])
+   		pposMax[i] = j;
+   		//console.log("second", i,j, pposMin[i], pposMax[i])
+
+   	}
+   	//console.log(partsKeys)
+   	//console.log("N Gas particles",partsUse[partsKeys[0]].Coordinates.length, pposMin, drawit, Nplotted)
+   	//console.log("N HRDM particles",partsUse[partsKeys[1]].Coordinates.length, pposMin, drawit, Nplotted)
+   	//console.log("N LRDM particles",partsUse[partsKeys[2]].Coordinates.length, pposMin, drawit, Nplotted)
+   	//console.log("N Stars particles",partsUse[partsKeys[3]].Coordinates.length, pposMin, drawit, Nplotted)
+}
+
+function checkalldrawn(){
+	for (var i=0; i< partsKeys.length; i++){
+		if (pposMax[i] < parts[partsKeys[i]].Coordinates.length){
+			return false;
+		}
+	}
+	return true;
+}
+
+function tick() {
+	//setInterval(function () {
+	if (drawit || redraw){
+	    tickN += 1;
+	    //console.log(tickN, tickwait)
+	    if (!checkalldrawn() || redraw){
+	    	//console.log("calling applyFilterDecimate")
+	    	applyFilterDecimate(reset = redraw);
+	    	//drawit = false;
+	    	//console.log(checkalldrawn(), pposMin, pposMax, drawit, tickN, tickwait, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
+	    	//console.log("drawScene")
+	    	drawScene();
+	    	redraw = false;
+	    	//drawit = false;
+	    }
+	    if (checkalldrawn()){
+	    	console.log("all drawn", pposMin, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
+	    	drawit = false;
+	    	tickN = 1;
+	    }
+
+	}
+	//}, 10);
+	requestAnimationFrame(tick);
+
+}
+
+// FOR UI
+
+var UIhidden = false;
+function hideUI(){
+	var UI = document.getElementById("UIhider");
+	var UIc = document.getElementsByClassName("UIcontainer")[0];
+	if (UIhidden){
+		UI.setAttribute("style","visibility: visible;");
+		UIc.setAttribute("style","border-style: solid;");
+		UIhidden = false;
+	} else {
+		UI.setAttribute("style","visibility: hidden;");	
+		UIc.setAttribute("style","border-style: none; margin-left:2px; margin-top:2px");
+		UIhidden = true;	
+	}
+}
+
+/* dropdowns */
+var gtoggle = [];
+var plotNmax = [];
+var filterLims = {};
+function initPVals(){
+//various quantities that require looping through the particle keys
+	for (var i=0; i<partsKeys.length; i++){
+		var p = partsKeys[i];
+		filterLims[p] = {};
+		gtoggle.push(true);
+		plotNmax.push(parts[p].Coordinates.length);
+	}
+	calcFilterLimits('log10Masses');
+}
+
+function getPi(pID){
+	var i=0;
+	for (i=0; i<partsKeys.length; i++){
+		if (pID == partsKeys[i]){
+			break;
+		}
+	}
+	return i
+}
+
+function showFunction(handle) {
+	var offset = 105;
+
+//find the position in the partsKeys list
+	var pID = handle.id.slice(0,-7); // remove  "Dropbtn" from id
+	var i = getPi(pID);
+
+    document.getElementById(pID+"Dropdown").classList.toggle("show");
+
+    if (i < partsKeys.length-1){
+	    pdiv = document.getElementsByClassName(partsKeys[i+1]+'Div')[0];
+		if (gtoggle[i]){
+	    	pdiv.setAttribute("style","margin-top: "+offset + "px; ");
+	    	gtoggle[i] = false;	
+	 	} else {
+	 		pdiv.setAttribute("style","margin-top: 0 px; ");	
+			gtoggle[i] = true;
+		}
+	} else {
+		c = document.getElementsByClassName("UIcontainer")[0];
+		if (gtoggle[i]){
+			c.setAttribute('style','padding-bottom:'+offset+'px');
+			gtoggle[i] = false;	
+
+		} else {
+			c.setAttribute('style','padding-bottom:0px');	
+			gtoggle[i] = true;		
+		}
+	}
+}
+
+function createUI(){
+	console.log("Creating UI");
+
+
+	console.log(partsKeys)
+	var UI = d3.select('#particleUI')
+	    .selectAll('div')
+		.data(partsKeys).enter()
+		.append('div')
+		.attr('class', function (d) { return "particleDiv "+d+"Div" }) //+ dropdown
+
+
+	var i=0;
+	for (i=0; i<partsKeys.length; i++){
+		d = partsKeys[i];
+
+		var controls = d3.selectAll('div.'+d+'Div');
+
+		controls.append('div')
+			.attr('class','pLabelDiv')
+			.text(function (d) { return d})
+			
+		var onoff = controls.append('label')
+			.attr('class','switch');
+
+		onoff.append('input')
+			.attr('id',d+'Check')
+			.attr('type','checkbox')
+			.attr('autocomplete','off')
+			.attr('checked','true')
+			.attr('onchange','checkPlotParts(this)');
+
+		onoff.append('span')
+			.attr('class','slideroo');
+
+		controls.append('input')
+			.attr('id', d+'Range')
+			.attr('class', 'sliderps')
+			.attr('type', 'range')
+			.attr('min', '0')
+			.attr('max', '500')
+			.attr('value','100')
+			.attr('autocomplete','off')
+			.attr('oninput','checkSlider(this)');
+
+		controls.append('input')
+			.attr('id', d+'Text')
+			.attr('class', 'pTextInput')
+			.attr('type', 'text')
+			.attr('value','1')
+			.attr('autocomplete','off')
+			.attr('onkeypress','checkText(this, event)');
+
+		controls.append('input')
+			.attr('id',d+'ColorPicker');
+
+		controls.append('button')
+			.attr('id', d+'Dropbtn')
+			.attr('class', 'dropbtn')
+			.attr('onclick','showFunction(this)')
+			.html('&#x25BC');
+
+		dropdown = controls.append('div')
+			.attr('id',d+'Dropdown')
+			.attr('class','dropdown-content');
+
+		dcontent = dropdown.append('div')
+			.attr('class','NdDiv');
+
+		dcontent.append('span')
+			.attr('class','pLabelDiv')
+			.attr('style','width:20px')
+			.text('N');
+
+		dcontent.append('input')
+			.attr('id',d+'NRange')
+			.attr('class','sliderps')
+			.attr('style','width:165px; background:#a3a3a3')
+			.attr('type','range')
+			.attr('min','0')
+			.attr('max','100')
+			.attr('value','0')
+			.attr('autocomplete','off')
+			.attr('oninput','checkSlider(this)');
+
+		dcontent.append('input')
+			.attr('id',d+'NText')
+			.attr('class','pTextInput')
+			.attr('style','width:50px')
+			.attr('type','text')
+			.attr('value','1')
+			.attr('autocomplete','off')
+			.attr('onkeypress','checkText(this, event)');
+
+//this should be more dynamic, depending on what is in the data
+		if (parts[d].log10Masses != null){
+			dcontent.append('div')
+				.attr('style','margin:0px; margin-left:-5px; padding:5px; height:20px; background:#808080;  width:100%')
+				.html('<b>Filters</b>');
+
+			dfilters = dcontent.append('div')
+				.attr('id',d+'MassFilter')
+				.attr('class','FilterClass');
+
+			dfilters.append('div')
+				.attr('class','FilterClassLabel')
+				.text('Mass:');
+
+			dfilters.append('div')
+				.attr('id',d+'MassFilterSlider');
+
+			dfilters.append('input')
+				.attr('id',d+'MassFilterMinT')
+				.attr('class','FilterMinTClass')
+				.attr('type','text');
+
+			dfilters.append('input')
+				.attr('id',d+'MassFilterMaxT')
+				.attr('class','FilterMaxTClass')
+				.attr('type','text');
+		}
+	}
+
+    initNsliders(dovalues=true);
+
+//	$("#particleUI").load("UI_v1.html"); 
+//});
+
+/* for color pickers*/
+$("#GasColorPicker").spectrum({
+    color: "rgba(255,0,0, 0.05)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#StarsColorPicker").spectrum({
+    color: "rgba(0,0,255, 0.05)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#LRDMColorPicker").spectrum({
+    color: "rgba(255,255,0, 0.05)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+$("#HRDMColorPicker").spectrum({
+    color: "rgba(255,255,0, 0.05)",
+    flat: false,
+    showInput: true,
+    showInitial: false,
+    showAlpha: true,
+    showPalette: false,
+    showSelectionPalette: true,
+    clickoutFiresChange: false,
+    maxSelectionSize: 10,
+    preferredFormat: "rgb",
+    change: function(color) {
+        checkColor(this, color);
+    },
+    });
+
+};
+
+
+
+/////////////////////////////
+function webGLStart() {
+    canvas = document.getElementById("WebGL-canvas");
+   	initGL();
+
+    setCenter(parts.Gas.Coordinates);
+    //console.log("initfrustum")
+    initFrustumPlanes();
+    rotateFrustum();
+    setmvMatrix0();
+
+	initPVals();
+
+    initShowParts();
+    initShaders();
+    initBuffers();
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.enable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
+    gl.preserveDrawingBuffer = false;
+    canvas.onmousedown = handleMouseDown;
+    document.onmousedown = handleMouseDown;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove;
+    canvas.addEventListener('wheel', handleMouseWheel);
+    canvas.addEventListener('mousewheel', handleMouseWheel)
+    canvas.addEventListener('DOMMouseScroll', handleMouseWheel);
+    window.addEventListener("resize", handleResize);
+    canvas.onwheel = function(event){ event.preventDefault(); };
+    canvas.onmousewheel = function(event){ event.preventDefault(); };
+
+//    loadJSON(function(response) {
+//        // Parse JSON string into object
+//         parts = JSON.parse(response);
+//         setCenter(parts.Gas.Coordinates);
+//         tick();
+//    });
+
+    createUI();
+    initFilters();
+    mouseDown = false;  //silly fix
+
+    mat4.perspective(fov, gl.viewportWidth / gl.viewportHeight, zmin, zmax, pMatrix);
+
+    drawit = true;
+    tick();
+}
+</script>
+
+<!--fragment shader -->
+<script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    varying vec3 vPosition;
+
+    uniform vec4 color;
+    const float rad = 1.;
+
+    void main(void) {
+        gl_FragColor = color;
+        // Get the distance vector from the center
+        vec2 fromCenter = abs(vPosition.xy);
+        float dist = length(fromCenter);
+        gl_FragColor.a *= 1. - dist/rad;
+
+        //if (dist > rad) {
+        //   discard;
+        //}
+    }
+</script>
+
+<!-- vertex shader -->
+<script id="vertex-shader" type="x-shader/x-vertex">
+    varying vec3 vPosition;
+
+    attribute vec3 aVertexPosition;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    uniform vec2 resolution;
+    uniform float uVertexScale;
+
+    void main(void) {
+        vPosition = aVertexPosition;
+
+        vec3 vPos = aVertexPosition;
+        vPos.xy *= uVertexScale;
+        gl_Position = uPMatrix * uMVMatrix * vec4(vPos, 1.0);
+
+
+        //vec4 vertex = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        //gl_Position = vertex;
+    }
+</script>
+
+<script>
+
+</script>
+
+</head>
+
+<body onload="webGLStart();">
+
+  <div> <!-- class="container" id="ContentContainer"> -->
+
+  	<div class="UIcontainer"> 
+<!-- top banner, to hide UI -->
+	<div class="UItopbar" onclick="hideUI();"></div>
+	<div id="UIhider">
+<!-- Full Screen -->
+    	<button id = "fullScreenButton" class="button" onclick="fullscreen();"><span>Fullscreen</span></button>
+<!-- Decimation -->
+      	<div class="particleDiv" >
+      		<div class='pLabelDiv' style="width:85px"> Decimation </div>
+        	<input id="DecimateRange" type="range" min="1" max="100" value="1" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
+    		<input id="DecimateText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+    	</div>	
+    	<div id="particleUI"></div>
+    
+    </div>
+	</div>
+<!-- WebGL canvas -->
+      <canvas oncontextmenu="return false;" id="WebGL-canvas" style="margin-left:auto; margin-right:0; display:block; padding:0px; background-color:black; position:absolute; top:0; left:0" ></canvas> 
+
+
+</div>
+
+<script type="text/javascript">
+
+
+
+</script>
+
+</body>
+</html>
+
