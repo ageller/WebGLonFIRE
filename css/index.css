@@ -1,0 +1,355 @@
+.body{
+  font-family: Sans-Serif;
+}
+
+.UIcontainer{
+	z-index:2; 
+	display:inline-block; 
+	position:absolute;
+	top:10px;
+	left:10px;
+	border-color:#505050;
+	border-style:solid;
+	border-width: 2px 2px 2px 2px;
+  font-family: Sans-Serif;
+}
+.UItopbar{
+	background-color:#d3d3d3;
+	height: 30px;
+  padding: 2px;
+	opacity: 0.7;
+	transition: opacity: 0.15s;
+  cursor: pointer;
+}
+.UItopbar:hover {
+	opacity: 1;
+}
+.bar1, .bar2, .bar3 {
+  width: 20px;
+  height: 3px;
+  background-color: #333;
+  margin: 4px 0;
+  transition: 0.4s;
+}
+
+.change .bar1 {
+  -webkit-transform: rotate(-45deg) translate(-6px, 4px) ;
+  transform: rotate(-45deg) translate(-6px, 4px) ;
+}
+
+.change .bar2 {opacity: 0;}
+
+.change .bar3 {
+  -webkit-transform: rotate(45deg) translate(-6px, -4px) ;
+  transform: rotate(45deg) translate(-6px, -4px) ;
+}
+
+.button-div {
+  z-index:2;
+  height:30px;
+  width:290px;
+  padding: 0px;
+  margin:5px;
+  cursor: pointer;
+  font-size:15px;
+  text-align: left;
+  text-decoration: none;
+  outline: none;
+  overflow: hidden;
+  border: none;
+  opacity: 0.7;
+  background-color: #339999;
+  transition: opacity: 0.15s;
+}
+.button-div:hover {
+  opacity: 1;
+}
+
+
+.button {
+  z-index:2;
+  height:30px;
+  width:290px;
+  padding: 5px;
+  margin:5px;
+  margin-bottom:0px;
+  cursor: pointer;
+  font-size:15px;
+  text-align: left;
+  text-decoration: none;
+  outline: none;
+  overflow: hidden;
+  border: none;
+  opacity: 0.7;
+  background-color: #339999;
+  transition: opacity: 0.15s;
+}
+.button:hover {
+	opacity: 1;
+}
+.button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.15s;
+}
+
+.button span:after {
+  content: '\00bb';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.15s;
+}
+
+.button:active span {
+  padding-left: 10px;
+}
+
+.button:active span:after {
+  opacity: 1;
+  right: -10px;
+}
+
+
+/* particle UI */
+.particleDiv {
+  z-index:2;
+  background-color: #d3d3d3;
+  width:280px;
+  padding:5px;
+  margin:5px;
+  height:20px;
+  opacity: 0.8;
+  transition: opacity .15s;
+}
+.particleDiv:hover {
+    opacity: 1;
+}
+.pLabelDiv {
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:50px;
+  padding:2px;
+}
+.pTextInput{
+  display: inline-block;
+  text-align: left;
+  vertical-align:top;
+  line-height: normal;
+  width:30px;
+}
+/* point and filter size slider */
+.sliderps {
+    /*-webkit-appearance: scrollbarthumb-horizontal;*/
+    width: 100px;
+    margin:0;
+    padding:0;
+    height: 20px;
+    background: #d3d3d3;
+    outline: none;
+}
+
+.sliderps::-webkit-slider-thumb {
+    -webkit-appearance: none; 
+    appearance: none;
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+.sliderps::-moz-range-thumb {
+    width: 10px;
+    height: 20px;
+    background: #000000;
+    cursor: pointer;
+    border-radius: 0px;
+}
+
+/* onoff slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 20px;
+}
+
+.switch input {display:none;}
+
+.slideroo {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding:0;
+  margin:0;
+  background-color: #ffffff;
+  transition: transform .2s;
+}
+
+.slideroo:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #d3d3d3;
+  transition: transform .2s;
+}
+
+input:checked + .slideroo {
+  background-color: #000000;
+}
+
+input:focus + .slideroo {
+  box-shadow: 0 0 1px #000000;
+}
+
+input:checked + .slideroo:before {
+  -webkit-transform: translateX(8px);
+  -ms-transform: translateX(8px);
+  transform: translateX(8px);
+}
+
+/* Rounded sliders */
+.slideroo.round {
+  border-radius: 34px;
+}
+
+.slideroo.round:before {
+  border-radius: 50%;
+}
+
+/* color picker = spectrum */
+.sp-replacer{
+	border:0px;
+	z-index:2;
+	position:absolute;
+	left:230px;
+ 	margin:0;
+ 	margin-top:-5px;
+ 	height:20px;
+ 	width:27px;
+ 	background:#d3d3d3;
+}
+.sp-replacer:hover, .sp-replacer.sp-active  {
+	border:0;
+}
+.sp-picker-container{
+	border:0;
+}
+
+/* dropdown menu */
+.dropbtn {
+	position:relative;
+	left: 40px;
+	top: -5px;
+	height: 30px;
+  background-color: #d3d3d3;
+  padding: 2px;
+  padding-left:5px;
+  font-size: 16px;
+  cursor: pointer;
+  border:0;
+  color:white;
+}
+.dropbtn:hover{
+	color:black;
+}
+.dropdown {
+  display: inline-block;
+}
+.dropdown-content {
+  display: none;
+  position: relative;
+  background-color:#808080;
+  /*background-color: #a3a3a3;*/
+  width: 290px;
+  padding:0;
+  margin:-5px;
+  overflow: auto;
+  z-index: 2;
+  left:0;
+}
+.dropdown-content div {
+  color: black;
+  text-decoration: none;
+  display: block;
+}
+.show {display:block;}
+
+.FilterClass{
+	position:absolute;
+	margin-top:10px;
+	left:55px;
+	width:180px;
+	height:20px;
+}
+.FilterClassLabel{
+  position:absolute; 
+  left:-100px;
+  top:-5px;
+}
+.FilterMinTClass{
+	position:absolute;
+	top:-5px;
+	left:-50px;
+	width:40px;
+	height:10px;
+	padding:2px;
+	color:black;
+}
+.FilterMaxTClass{
+	position:absolute;
+	top:-5px;
+	left:180px;
+	width:40px;
+	height:10px;
+	padding:2px;
+}
+.noUi-target{
+  cursor: pointer;
+}
+.noUi-connect{
+	background:black;
+}
+.noUi-handle{
+  cursor: pointer;
+	background:black;
+	box-shadow:none;
+	border-radius: 0;
+  border:1px solid #d3d3d3;
+}
+.noUi-horizontal {
+  height: 10px;
+}
+.noUi-horizontal .noUi-handle {
+  width: 10px;
+  left: -5px;
+  height: 22px;
+  top:-8px;
+}
+.noUi-handle:before,
+.noUi-handle:after {
+  height: 0px;
+  width: 0px;
+}
+.NdDiv{
+	padding:5px; 
+	height:20px; 
+	display:inline-block; 
+	width:280px;
+  background-color:#a3a3a3;
+}
+
+.select{
+  margin-left:10px;
+}
