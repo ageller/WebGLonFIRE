@@ -438,7 +438,7 @@ function selectVelType() {
 
 	var p = this.id.slice(0,-14)
 	velType[p] = selectValue;
-
+	redraw = true;
 };
 
 function createUI(){
