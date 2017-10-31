@@ -15,8 +15,6 @@ function drawScene() {
   		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   	}
 
-
-    gl.uniform2f(shaderProgram.resUniform, canvas.width/defWidth, canvas.height/defHeight);
     var i=0;
     var j=0;
     var idraw = [0, 0, 0, 0];
@@ -24,17 +22,46 @@ function drawScene() {
     var p;
     var inputRad = false;
     var inputWeight = false;
+    var mag;
     for (j = 0; j < partsKeys.length; j++){
 		p = partsKeys[j];
 
+
+
     	if (plotParts[p]){
-    		useAlpha = Pcolors[p][3];
+			gl.uniform1f(shaderProgram.vScaleUniform, PsizeMult[p]);
+
+			if (showVel[p]){
+	        	//initLine(PsizeMult[p]);
+	        	switch(velType[p]) {
+				    case 'line':
+				        initCylinder(0.1,1.);
+				        break;
+				    case 'arrow':
+				        initArrow(1.);
+				        break;
+				    case 'cone':
+				        initCone(0.1,1.);
+				        break;
+				    default:
+				        initCylinder(0.1,1.);
+				} 
+	    	    gl.uniform1f(shaderProgram.oIDUniform, 1);
+
+			} else{
+				initQuad();
+			    gl.uniform1f(shaderProgram.oIDUniform, 0);
+				gl.uniform1i(shaderProgram.SPHradUniform, parts[p].doSPHrad);
+			}
+
+	    	useAlpha = Pcolors[p][3];
   			inputRad = false;
   			inputWeight = false;
 
     		//useAlpha = 1;
 			if (mouseDown || tickN < tickwait){
-				useAlpha = 1;
+				useAlpha *= parts[p].Coordinates.length / Math.min(parts[p].Coordinates.length, parts[p].nMaxPlot);
+;
 				redraw = true;
 			}
 			
@@ -45,7 +72,6 @@ function drawScene() {
       			inputWeight = true;
       		}  
 
-			gl.uniform1f(shaderProgram.vScaleUniform, PsizeMult[p]);
 
 			var indices = partsUse[p];
 	    	imax = indices.length; 
@@ -62,20 +88,45 @@ function drawScene() {
 
 	        	mvMatrix = mat4.create(mvMatrix0);
 		        //whatever is added here to positions defines the center of rotation
-		        mat4.translate(mvMatrix, [parts[p].Coordinates[indices[i]][0] -center[0], parts[p].Coordinates[indices[i]][1] - center[1], parts[p].Coordinates[indices[i]][2] - center[2]]);
-		        mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
-		        mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
-		        setMatrixUniforms();
+        		mat4.translate(mvMatrix, [parts[p].Coordinates[indices[i]][0] - center[0], parts[p].Coordinates[indices[i]][1] - center[1], parts[p].Coordinates[indices[i]][2] - center[2]]);		          
 
-		        if (inputRad){
-					gl.uniform1f(shaderProgram.vScaleUniform, parts[p].partRadius[indices[i]]*PsizeMult[p]);
-				}
-				if (inputWeight){
-			       	gl.uniform4f(shaderProgram.colorUniform, Pcolors[p][0], Pcolors[p][1], Pcolors[p][2], useAlpha * parts[p].partWeight[indices[i]]);
-				}
 
-		        gl.drawArrays(gl.TRIANGLE_STRIP, 0, VertexPositionBuffer.numItems);
-		        
+
+
+
+		        if (showVel[p]){
+		        	//NOTE: I draw the arrows pointing up in the y direction, so I need to subtract pi/2
+			        mat4.rotate(mvMatrix, (parts[p].VelVals[indices[i]][1] - Math.PI/2.), [0, 0, 1]);
+			        //do I need to subtract something here? 
+		        	mat4.rotate(mvMatrix, (parts[p].VelVals[indices[i]][2] - Math.PI/2.), [1, 0, 0]);
+
+			        setMatrixUniforms();
+
+					gl.uniform1f(shaderProgram.vScaleUniform, parts[p].VelVals[indices[i]][3]*PsizeMult[p]);
+					if (velType[p] == "line"){
+		        		gl.drawArrays(gl.TRIANGLE_STRIP, 0, VertexPositionBuffer.numItems);
+		        	} else {
+		        		gl.drawArrays(gl.TRIANGLES, 0, VertexPositionBuffer.numItems);
+		        	}
+		        	mag = 1.;//parts[p].VelVals[indices[i]][3];
+					if (inputWeight){
+				       	mag = mag * parts[p].partWeight[indices[i]];
+					}
+			       	gl.uniform4f(shaderProgram.colorUniform, Pcolors[p][0], Pcolors[p][1], Pcolors[p][2], useAlpha *  mag);
+
+
+		        } else {
+			        mat4.rotate(mvMatrix, degToRad(-xrot), [0, 1, 0]);
+			        mat4.rotate(mvMatrix, degToRad(-yrot), [1, 0, 0]);
+			        setMatrixUniforms();
+			        if (inputRad){
+						gl.uniform1f(shaderProgram.vScaleUniform, parts[p].partRadius[indices[i]]*PsizeMult[p]);
+					}
+					if (inputWeight){
+				       	gl.uniform4f(shaderProgram.colorUniform, Pcolors[p][0], Pcolors[p][1], Pcolors[p][2], useAlpha * parts[p].partWeight[indices[i]]);
+					}
+		        	gl.drawArrays(gl.TRIANGLE_STRIP, 0, VertexPositionBuffer.numItems);
+		        }
 	        }
 	    }
     }
@@ -135,7 +186,7 @@ function applyFilterDecimate(reset=false){
 				Nplotted += 1;   
 
    			}
-   			if (Nplotted >= rMaxPlot){
+   			if (Nplotted >= parts[p].nMaxPlot){
    				break;
    			}
    		}
@@ -167,7 +218,7 @@ function tick() {
 	    	//console.log(checkalldrawn(), pposMin, pposMax, drawit, tickN, tickwait, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
 	    	//console.log("drawScene")
 	    	redraw = false;
-        drawScene();
+        	drawScene();
 	    	//drawit = false;
 	    }
 	    if (checkalldrawn()){

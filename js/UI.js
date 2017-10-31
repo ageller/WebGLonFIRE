@@ -2,7 +2,7 @@
 function checkCenterLock(box)
 {
 	rotatecamera = false;
-	console.log(center, camerapos);
+	//console.log(center, camerapos);
 	if (camerapos[2] != 0){
         c0 = [0., 0., -1.*camerapos[2]];
         rotate(c0, degToRad(xrot), degToRad(yrot), 0.);
@@ -14,6 +14,10 @@ function checkCenterLock(box)
 	if (box.checked) {
 		rotatecamera = true;
 	}
+	updateUICenterText();
+	updateUICameraText();
+	updateUIRotText();
+
 }
 
 function checkVelBox(box)
@@ -23,7 +27,7 @@ function checkVelBox(box)
 	if (box.checked){
 		showVel[pID] = true;
 	}
-	console.log(pID, showVel[pID])
+//	console.log(pID, showVel[pID])
 
 }
 
@@ -183,6 +187,18 @@ function updateUICenterText()
     document.getElementById("CenterZText").value = center[2];
 }
 
+function updateUICameraText()
+{
+    document.getElementById("CameraXText").value = camerapos[0];
+    document.getElementById("CameraYText").value = camerapos[1];
+    document.getElementById("CameraZText").value = camerapos[2];
+}
+
+function updateUIRotText()
+{
+    document.getElementById("RotXText").value = xrot;
+    document.getElementById("RotYText").value = yrot;
+}
 function checkSlider(slider)
 {
 	tickN = 1;
@@ -223,6 +239,8 @@ function checkText(input, event)
 		var type = input.id.slice(-5); 
 		var pID = input.id.slice(0,-5); // remove  "NText" from id
 
+		var max;
+
 		//console.log(type);
 		if (type == 'NText'){
 			document.getElementById(pID+"NRange").value = input.value;
@@ -231,6 +249,8 @@ function checkText(input, event)
 
 		if (type == "PText"){
 			PsizeMult[pID] = input.value;
+			max = document.getElementById(pID+"PRange").max;
+			document.getElementById(pID+"PRange").max = Math.max(100.*input.value, max);
 			document.getElementById(pID+"PRange").value = 100.*input.value;
 		}
 
@@ -243,17 +263,44 @@ function checkText(input, event)
 
         if (input.id == "CenterXText"){
         	center[0] = parseFloat(input.value);
-	        applyFilterDecimate();
+			applyFilterDecimate(reset=true);
 		}
         if (input.id == "CenterYText"){
         	center[1] = parseFloat(input.value);
-	        applyFilterDecimate();
-		}
+		    applyFilterDecimate(reset=true);
+ 		}
         if (input.id == "CenterZText"){
         	center[2] = parseFloat(input.value);
-        	console.log(center)
-	        applyFilterDecimate();
-		}
+		    applyFilterDecimate(reset=true);
+ 		}
+
+        if (input.id == "CameraXText"){
+        	camerapos[0] = parseFloat(input.value);
+        	setmvMatrix0()
+		    applyFilterDecimate(reset=true);
+ 		}
+        if (input.id == "CameraYText"){
+        	camerapos[1] = parseFloat(input.value);
+        	setmvMatrix0()
+		    applyFilterDecimate(reset=true);
+ 		}
+        if (input.id == "CameraZText"){
+        	camerapos[2] = parseFloat(input.value);
+        	setmvMatrix0()
+		    applyFilterDecimate(reset=true);
+ 		}
+
+
+        if (input.id == "RotXText"){
+        	xrot = parseFloat(input.value);
+        	setmvMatrix0()
+		    applyFilterDecimate(reset=true);
+ 		}
+        if (input.id == "RotYText"){
+        	yrot = parseFloat(input.value);
+        	setmvMatrix0()
+		    applyFilterDecimate(reset=true);
+ 		}
 
 		if (input.id == "RenderXText"){
 			renderWidth = parseInt(input.value);
@@ -314,54 +361,85 @@ function showFunction(handle) {
 
 //find the position in the partsKeys list
 	var pID = handle.id.slice(0,-7); // remove  "Dropbtn" from id
-	var i = getPi(pID);
-
+	i = getPi(pID);
     document.getElementById(pID+"Dropdown").classList.toggle("show");
 
     var pdiv;
-   	var ddiv = document.getElementById(partsKeys[i]+'Dropdown');
+   	var ddiv = document.getElementById(pID+'Dropdown');
 	var ht = parseFloat(ddiv.style.height.slice(0,-2)) + offset; //to take of "px"
+	var pb = 0.;
 
     if (i < partsKeys.length-1){
 	    pdiv = document.getElementsByClassName(partsKeys[i+1]+'Div')[0];
-		if (gtoggle[i]){
+		if (gtoggle[pID]){
 	    	pdiv.setAttribute("style","margin-top: "+ht + "px; ");
-	    	gtoggle[i] = false;	
+	    	gtoggle[pID] = false;	
 	 	} else {
 	 		pdiv.setAttribute("style","margin-top: 0 px; ");	
-			gtoggle[i] = true;
+			gtoggle[pID] = true;
 		}
-	} else {
-		c = document.getElementsByClassName("UIcontainer")[0];
-		if (gtoggle[i]){
-			c.setAttribute('style','padding-bottom:'+(ht-5)+'px');
-			gtoggle[i] = false;	
+	} else { // a bit clunky, but works with the current setup
+		if (pID == "Camera"){
+	    	c = document.getElementById("DecimationDiv");
+	    	pb = 5;
+			if (gtoggle[pID]){
+				c.setAttribute('style','margin-top:'+(pb+ht-5)+'px');
+				gtoggle[pID] = false;	
 
-		} else {
-			c.setAttribute('style','padding-bottom:0px');	
-			gtoggle[i] = true;		
+			} else {
+				c.setAttribute('style','margin-top:'+pb+'px');	
+				gtoggle[pID] = true;	
+			}	
+		} else { //for the last particle (to move the bottom of the container)
+			c = document.getElementsByClassName("UIcontainer")[0];
+
+			if (gtoggle[pID]){
+				c.setAttribute('style','padding-bottom:'+(pb+ht-5)+'px');
+				gtoggle[pID] = false;	
+
+			} else {
+				c.setAttribute('style','padding-bottom:'+pb+'px');	
+				gtoggle[pID] = true;		
+			}
 		}
 	}
 }
 
 function selectFilter() {
-	selectValue = d3.select('select').property('value')
-	console.log("in selectFilter", selectValue, this.id)
+	var option = d3.select(this)
+	    .selectAll("option")
+	    .filter(function (d, i) { 
+	        return this.selected; 
+    });
+	selectValue = option.property('value');
+
 	var p = this.id.slice(0,-13)
+
+	//console.log("in selectFilter", selectValue, this.id, p)
 	for (var i=0; i<fkeys[p].length; i+=1){
-		console.log('hiding','#'+p+'_FK_'+fkeys[p][i]+'_END_Filter')
+		//console.log('hiding','#'+p+'_FK_'+fkeys[p][i]+'_END_Filter')
 		d3.selectAll('#'+p+'_FK_'+fkeys[p][i]+'_END_Filter')
 			.style('display','none');
 	}
-	console.log('showing', '#'+p+'_FK_'+selectValue+'_END_Filter')
+	//console.log('showing', '#'+p+'_FK_'+selectValue+'_END_Filter')
 	d3.selectAll('#'+p+'_FK_'+selectValue+'_END_Filter')
 		.style('display','inline');
 
-	//d3.select('body')
-	//	.append('p')
-	//	.text(selectValue + ' is the last selected option.')
+
 };
 
+function selectVelType() {
+	var option = d3.select(this)
+	    .selectAll("option")
+	    .filter(function (d, i) { 
+	        return this.selected; 
+    });
+	selectValue = option.property('value');
+
+	var p = this.id.slice(0,-14)
+	velType[p] = selectValue;
+
+};
 
 function createUI(){
 	console.log("Creating UI");
@@ -485,12 +563,20 @@ function createUI(){
 				.attr('autocomplete','off')
 				.attr('onchange','checkVelBox(this)');
 
+			var selectVType = dVcontent.append('select')
+				.attr('class','selectVelType')
+				.attr('id',d+'_SelectVelType')
+				.on('change',selectVelType)
 
+			var options = selectVType.selectAll('option')
+				.data(velopts).enter()
+				.append('option')
+				.text(function (d) { return d; });
 
 			dheight += 30;
 		}
 
-//this should be more dynamic, depending on what is in the data
+//this is dynamic, depending on what is in the data
 //create the filters
 //first count the available filters
 		showfilts = [];
@@ -505,16 +591,16 @@ function createUI(){
 		if (nfilt > 0){
 			dheight += 70;
 
-			var select = dropdown.append('div')
+			var selectF = dropdown.append('div')
 				.attr('style','margin:0px;  padding:5px; height:20px;')
 				.html('<b>Filters</b>')	
 
 				.append('select')
-				.attr('class','select')
+				.attr('class','selectFilter')
 				.attr('id',d+'_SelectFilter')
 				.on('change',selectFilter)
 
-			var options = select.selectAll('option')
+			var options = selectF.selectAll('option')
 				.data(showfilts).enter()
 				.append('option')
 				.text(function (d) { return d; });

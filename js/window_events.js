@@ -56,7 +56,7 @@ function handleResize(event){
 //handle Mouse events
 function handleMouseDown(event) {
     //console.log(event.target.className)
-    if (event.target.className == "pTextInput" || event.target.className == "sp-preview-inner" || event.target.className == "dropbtn" || event.target.className == "FilterMaxTClass" || event.target.className == "FilterMinTClass" || event.target.id == "UItopbar" || event.target.className == "select" || event.target.className == "bar1" || event.target.className == "bar2" || event.target.className == "bar3" || event.target.id == "ControlsText" || event.target.id == "Hamburger" || event.target.id =="renderButton" || event.target.className == "button-div" || event.target.id == "CenterCheckDiv" || event.target.id == "CenterCheckBox" || event.target.id == "CenterCheckLabel" || event.target.className == "pLabelDiv"){
+    if (event.target.className == "pTextInput" || event.target.className == "sp-preview-inner" || event.target.className == "dropbtn" || event.target.className == "FilterMaxTClass" || event.target.className == "FilterMinTClass" || event.target.id == "UItopbar" || event.target.className == "select" || event.target.className == "bar1" || event.target.className == "bar2" || event.target.className == "bar3" || event.target.id == "ControlsText" || event.target.id == "Hamburger" || event.target.id =="renderButton" || event.target.className == "button-div" || event.target.id == "CenterCheckDiv" || event.target.id == "CenterCheckBox" || event.target.id == "CenterCheckLabel" || event.target.className == "pLabelDiv" || event.target.className == "selectFilter" || event.target.className == "selectVelType"){
         //tickN = 1;
         //tickwait = addtickwait;
         return;
@@ -99,6 +99,7 @@ function handleMouseMove(event) {
     xrot = xrot % 360.;
     yrot -= dyrot*fac;
     yrot = yrot % 360.;
+    updateUIRotText();
     setmvMatrix0();
     redraw = true;
     applyFilterDecimate(reset=true);
@@ -124,6 +125,7 @@ function handleMouseWheel(event)
         center[2] += c0[2];
     }
     updateUICenterText();
+    updateUICameraText();
 
     setmvMatrix0();
     tickN = 1;

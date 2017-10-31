@@ -1,20 +1,27 @@
 var myVertexShader = `
 
 varying vec3 vPosition;
+varying float vID;
 
 attribute vec3 aVertexPosition;
 
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
+uniform float oID;
 
-uniform vec2 resolution;
 uniform float uVertexScale;
 
 void main(void) {
     vPosition = aVertexPosition;
+    vID = oID;
 
     vec3 vPos = aVertexPosition;
-    vPos.xy *= uVertexScale;
+    if (oID == 0.){
+		vPos.xy *= uVertexScale;
+	} else {
+		vPos.y *= uVertexScale;
+	}
+	
     gl_Position = uPMatrix * uMVMatrix * vec4(vPos, 1.0);
 
 

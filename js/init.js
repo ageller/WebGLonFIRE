@@ -27,6 +27,7 @@ var df = 0.0003;
 
 //positions, will be rest below
 var center = [0., 0., -50.];
+var centerMag = 1.;
 
 //plotting fields
 var plotParts = {};
@@ -38,7 +39,6 @@ var PsizeMult = {};
 var Pcolors = {};
 
 //Decimation
-var rMaxPlot = 10000;
 var pposMin = [0, 0, 0, 0];
 var pposMax = [0, 0, 0, 0];
 var partsLength = [0, 0, 0, 0];
@@ -68,7 +68,7 @@ var fov = 45.
 var loaded = false;
 
 // for dropdowns
-var gtoggle = [];
+var gtoggle = {"Camera":true};
 var plotNmax = {};
 var filterLims = {};
 
@@ -78,30 +78,14 @@ var renderHeight = 1200;
 
 //for deciding whether to show velocity vectors
 var showVel = {};
+var velopts = ['line', 'arrow', 'cone']
+var velType = {};
 
 function webGLStart() {
 
   while (!loaded){
     checkloaded();
   }
-
-//same allocation size error here for full data set
-//  loadJSON(function(response) {
-//    // Parse JSON string into object
-//    var tparts = JSON.parse(response);
-//    parts = tparts[0];
-
-//  d3.json("data/snap440.json",  function(err, partsjson) {
- //   //d3 won't load the full data set due to memory allocaiton error... I may need to break it down if I want this
-//    if(err) console.log("error fetching data", err);
-//    parts = partsjson[0];
-
-//    // stop spin.js loader
-//    spinner.stop();
-
-//    //show the rest of the page
-//    d3.select("#ContentContainer").style("visibility","visible")
-
 
     canvas = document.getElementById("WebGL-canvas");
    	initGL();
@@ -165,8 +149,31 @@ function initGL() {
     }
 }
 
+function calcVelVals(p){
+    parts[p].VelVals = [];
+    parts[p].magVelocities = [];
+    var mag, angx, angy, v;
+    var max = -1.;
+    var min = 1.e20;
+    for (var i=0; i<parts[p].Velocities.length; i++){
+        v = parts[p].Velocities[i];
+        mag = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+        angx = Math.atan2(v[1],v[0]);
+        angy = Math.acos(v[2]/mag);
+        if (mag > max){
+            max = mag;
+        }
+        if (mag < min){
+            min = mag;
+        }
+        parts[p].VelVals.push([mag, angx, angy]);
+        parts[p].magVelocities.push(mag);
+    }
+    for (var i=0; i<parts[p].Velocities.length; i++){
+        parts[p].VelVals[i].push(parts[p].VelVals[i][0]/(max - min));
+    }
 
-
+}
 //initialize various values for the parts dict from the input data file, 
 function initPVals(){
     partsKeys = Object.keys(parts);
@@ -175,16 +182,22 @@ function initPVals(){
 		PsizeMult[p] = parts[p].sizeMult;
 		Pcolors[p] = parts[p].color;
 		filterLims[p] = {};
-		gtoggle.push(true);
+		gtoggle[p] = true;
 		plotNmax[p] = parts[p].Coordinates.length;
 		plotParts[p] = true;
-		fkeys[p] = parts[p].filterKeys;
-		for (var k=0; k<fkeys[p].length; k++){
-			calcFilterLimits(p, fkeys[p][k]);
-		}
-        showVel[p] = false;
-	}
 
+        if (parts[p].Velocities != null){
+            calcVelVals(p);
+            parts[p].filterKeys.push("magVelocities");
+            velType[p] = 'line';
+            //console.log(p, parts[p].VelVals, parts[p].Velocities)
+        }
+        showVel[p] = false;
+        fkeys[p] = parts[p].filterKeys;
+        for (var k=0; k<fkeys[p].length; k++){
+            calcFilterLimits(p, fkeys[p][k]);
+        }
+	}
 
 
 }
@@ -225,9 +238,10 @@ function initShaders() {
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-    shaderProgram.resUniform = gl.getUniformLocation(shaderProgram, "resolution");
     shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "color");
     shaderProgram.vScaleUniform = gl.getUniformLocation(shaderProgram, "uVertexScale");
+    shaderProgram.oIDUniform = gl.getUniformLocation(shaderProgram, "oID");
+    shaderProgram.SPHradUniform = gl.getUniformLocation(shaderProgram, "SPHrad");
 
 }    
 
@@ -249,7 +263,142 @@ function initQuad() {
 	gl.enableVertexAttribArray(0);
 }
 
+//this is an arrow (for the velocities)
+function initLine(s){
+    VertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, VertexPositionBuffer);
+    vertices = [
+         0.0,  0.0,  0.0,
+         0.0,  s,    0.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = 2;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
 
+}
+
+//https://gist.github.com/davidwparker/1195852
+function initCone(s, h, dAng = 10.){
+    var Nvert = 3. * Math.round(360./dAng);
+    vertices = []
+    /* sides */
+    for (var k=0; k<=360; k+=dAng){
+        vertices.push(0);
+        vertices.push(h);
+        vertices.push(0);
+
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k)));
+
+        vertices.push(s*Math.cos(degToRad(k + dAng)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k + dAng)));
+
+    }
+
+    /* bottom circle */ 
+    /*for (var k=0; k<=360; k+=dAng){
+        vertices.push(0);
+        vertices.push(0);
+        vertices.push(0);
+
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k)));
+
+        vertices.push(s*Math.cos(degToRad(k + dAng)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k + dAng)));
+    }*/
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = Nvert;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+}
+function initCylinder(s, h, dAng = 10.){
+    var Nvert = 6. * (Math.round(360./dAng) + 1.);
+    vertices = []
+
+    /* top circle */ 
+    for (var k=0; k<=360; k+=dAng){
+        vertices.push(0);
+        vertices.push(h);
+        vertices.push(0);
+
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(h);
+        vertices.push(s*Math.sin(degToRad(k)));
+    }
+
+    /* sides */
+    for (var k=0; k<=360; k+=dAng){
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(h);
+        vertices.push(s*Math.sin(degToRad(k)));
+
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k)));
+    }
+    /* close it */
+    vertices.push(s);
+    vertices.push(h);
+    vertices.push(0);
+    vertices.push(s);
+    vertices.push(0);
+    vertices.push(0);
+
+
+    /* bottom circle */ 
+    for (var k=0; k<=360; k+=dAng){
+        vertices.push(s*Math.cos(degToRad(k)));
+        vertices.push(0);
+        vertices.push(s*Math.sin(degToRad(k)));
+
+        vertices.push(0);
+        vertices.push(0);
+        vertices.push(0);
+    }
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = Nvert;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+}
+//this is an arrow (for the velocities)
+function initArrow(s, tsize = 0.05, hsize = 0.5){
+    VertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, VertexPositionBuffer);
+    vertices = [
+         0.5*hsize, s,        0.0,
+         0.0,       s+hsize,  0.0,
+        -0.5*hsize, s,        0.0,
+
+        -1.*tsize,  s,    0.0,
+         tsize,     s,    0.0,
+        -1.*tsize,  0.0,  0.0,
+
+         tsize,     0.0,  0.0,
+         tsize,     s,    0.0,
+        -1.*tsize,  0.0,  0.0,
+
+    ];
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    VertexPositionBuffer.itemSize = 3;
+    VertexPositionBuffer.numItems = 9;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, VertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+}
 
 function setCenter(coords){
     var sum = [0., 0., 0.];
@@ -259,6 +408,8 @@ function setCenter(coords){
         sum[2] += coords[i][2];
     }
     center = [sum[0]/coords.length, sum[1]/coords.length, sum[2]/coords.length];
+    centerMag = Math.sqrt(center[0]*center[0] + center[1]*center[1] + center[2]*center[2]);
+
 }
 
 

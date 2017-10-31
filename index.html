@@ -42,22 +42,47 @@
 		    		<input id="RenderYText" type="text" class="pTextInput" style="width:50px; margin-top:5px" value="1200" autocomplete="off" onkeypress="checkText(this, event)">
 
 		    	</div>
+
+		    	<!-- Camera Controls -->
+		      	<div class="particleDiv" > 
+		      		<div class='pLabelDiv' style="width:215px"> Camera Controls </div>
+					<button id="CameraDropbtn" class="dropbtn" onclick="showFunction(this)">▼</button>
+
+		    		<div id="CameraDropdown" class="dropdown-content" style="height:85px">
+		    			<!-- Center -->
+			      		<div class='pLabelDiv' style="width:280px; margin-top:5px"> 
+			      			<div style="width:60px; display:inline-block"> Center </div>
+				    		<input id="CenterXText" type="text" class="pTextInput" style="width:38px; " value="1" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<input id="CenterYText" type="text" class="pTextInput" style="width:38px" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<input id="CenterZText" type="text" class="pTextInput" style="width:38px" value="1" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<span style="width:45px; margin:0; padding:0; margin-left:10px" id="CenterCheckDiv">
+					    		<input id="CenterCheckBox" type="checkbox" value="false" onchange="checkCenterLock(this)" autocomplete="off">
+								<label for="CenterCheckBox" id="CenterCheckLabel" style="font-size:10pt">Lock</label>
+							</span>
+						</div>
+		    			<!-- Camera -->
+			      		<div class='pLabelDiv' style="width:280px"> 
+			      			<div style="width:60px; display:inline-block"> Camera </div>
+				    		<input id="CameraXText" type="text" class="pTextInput" style="width:38px" value="0" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<input id="CameraYText" type="text" class="pTextInput" style="width:38px" value="0" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<input id="CameraZText" type="text" class="pTextInput" style="width:38px" value="0" autocomplete="off" onkeypress="checkText(this, event)">
+				    	</div>
+		    			<!-- Rotation -->
+			      		<div class='pLabelDiv' style="width:280px">  
+			      			<div style="width:60px; display:inline-block"> Rotation </div>
+				    		<input id="RotXText" type="text" class="pTextInput" style="width:38px" value="0" autocomplete="off" onkeypress="checkText(this, event)">
+				    		<input id="RotYText" type="text" class="pTextInput" style="width:38px" value="0" autocomplete="off" onkeypress="checkText(this, event)">
+				    	</div>
+					</div>
+		    	</div>
+	
+
+
 				<!-- Decimation -->
-		      	<div class="particleDiv" >
+		      	<div class="particleDiv" id="DecimationDiv" >
 		      		<div class='pLabelDiv' style="width:85px"> Decimation </div>
 		        	<input id="DecimateRange" type="range" min="1" max="100" value="1" class="sliderps" autocomplete="off" oninput="checkSlider(this)">
 		    		<input id="DecimateText" type="text" class="pTextInput" value="1" autocomplete="off" onkeypress="checkText(this, event)">
-		    	</div>	
-				<!-- Camera Center -->
-		      	<div class="particleDiv" >
-		      		<div class='pLabelDiv' style="width:50px"> Center </div>
-		    		<input id="CenterXText" type="text" class="pTextInput" style="width:40px" value="1" autocomplete="off" onkeypress="checkText(this, event)">
-		    		<input id="CenterYText" type="text" class="pTextInput" style="width:40px" value="1" autocomplete="off" onkeypress="checkText(this, event)">
-		    		<input id="CenterZText" type="text" class="pTextInput" style="width:40px" value="1" autocomplete="off" onkeypress="checkText(this, event)">
-		    		<span style="width:45px; margin:0; padding:0; margin-left:10px" id="CenterCheckDiv">
-			    		<input id="CenterCheckBox" type="checkbox" value="false" onchange="checkCenterLock(this)" autocomplete="off">
-						<label for="CenterCheckBox" id="CenterCheckLabel" style="font-size:10pt" >Lock</label>
-					</span>
 		    	</div>	
 		    	<div id="particleUI"></div>
 		    
