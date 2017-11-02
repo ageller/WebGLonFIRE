@@ -53,9 +53,9 @@ var tickN = 0
 //I need to add a small factor because the precision of the noUiSlider effects the filtering
 var fkeys = {};
 var SliderF = {};
-var SliderTmin = {};
-var SliderTmax = {};
-var SliderInputs = {};
+var SliderFmin = {};
+var SliderFmax = {};
+var SliderFinputs = {};
 
 var partsKeys;
 var partsUse = {};
@@ -80,6 +80,20 @@ var renderHeight = 1200;
 var showVel = {};
 var velopts = ['line', 'arrow', 'cone']
 var velType = {};
+
+//for single sliders
+var SliderN = {};
+var SliderNmin = {};
+var SliderNmax = {};
+var SliderNInputs = {};
+var SliderP = {};
+var SliderPmin = {};
+var SliderPmax = {};
+var SliderPInputs = {};
+var SliderD;
+var SliderDmin;
+var SliderDmax;
+var SliderDInputs;
 
 function webGLStart() {
 
@@ -121,7 +135,6 @@ function webGLStart() {
     canvas.onmousewheel = function(event){ event.preventDefault(); };
 
     createUI();
-    initFilters();
     mouseDown = false;  //silly fix
 
     mat4.perspective(fov, gl.viewportWidth / gl.viewportHeight, zmin, zmax, pMatrix);

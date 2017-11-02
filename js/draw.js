@@ -80,7 +80,7 @@ function drawScene() {
 
 	        for (i = pposMin[j]; i < imax; i++) {
 
-	        	if (idraw[j] > plotNmax[p]){
+	        	if (idraw[j] >= plotNmax[p]){
 	        		break;
 	        	}
 

@@ -53,15 +53,16 @@ function initNsliders(dovalues = false){
 			if (dovalues){
 				Nr.value = Np;
 				Nt.value = Np;
-				plotNmax[p] = Np;
+				//plotNmax[p] = Np;
 			}
 		}
 	}
 	drawit = true;
 }
 
-// Filters
-function setSliderHandle(i, value, parent) {
+/////////////////////////////////////////////
+// Filter sliders
+function setFSliderHandle(i, value, parent) {
 	var r = [null,null];
 	r[i] = value;
 	parent.noUiSlider.set(r);
@@ -77,11 +78,12 @@ function setSliderHandle(i, value, parent) {
 	redraw = true;
 	mouseDown = false; //silly fix
 }
+
 // Listen to keydown events on the input field.
-function handleSliderText(input, handle) 
+function handleFSliderText(input, handle) 
 {
 	input.addEventListener('change', function(){
-		setSliderHandle(handle, this.value, this.parent);
+		setFSliderHandle(handle, this.value, this.parent);
 	});
 	input.addEventListener('keydown', function( e ) {
 		var values = input.parent.noUiSlider.get();
@@ -96,7 +98,7 @@ function handleSliderText(input, handle)
 		// 40 is key down.
 		switch ( e.which ) {
 			case 13:
-				setSliderHandle(handle, this.value, input.parent);
+				setFSliderHandle(handle, this.value, input.parent);
 				break;
 			case 38:
 				// Get step to go increase slider value (up)
@@ -107,7 +109,7 @@ function handleSliderText(input, handle)
 				}
 				// null = edge of slider
 				if ( position !== null ) {
-					setSliderHandle(handle, value + position, input.parent);
+					setFSliderHandle(handle, value + position, input.parent);
 				}
 				break;
 			case 40:
@@ -116,34 +118,33 @@ function handleSliderText(input, handle)
 					position = 1;
 				}
 				if ( position !== null ) {
-					setSliderHandle(handle, value - position, input.parent);
+					setFSliderHandle(handle, value - position, input.parent);
 				}
 				break;
 		}
 	});
 };
 
-
-function initFilters(){
+function createFilterSliders(){
 
 	var i = 0;
 	var j = 0;
 	for (i=0; i<partsKeys.length; i++){
 		p = partsKeys[i];
 		SliderF[p] = {};
-		SliderTmin[p] = {};
-		SliderTmax[p] = {};
-		SliderInputs[p] = {};
+		SliderFmin[p] = {};
+		SliderFmax[p] = {};
+		SliderFinputs[p] = {};
 
 		for (j=0; j<fkeys[p].length; j++){
 			var fk = fkeys[p][j]
 			SliderF[p][fk] = document.getElementById(p+'_FK_'+fk+'_END_FilterSlider');
-			SliderTmin[p][fk] = document.getElementById(p+'_FK_'+fk+'_END_FilterMinT');
-			SliderTmax[p][fk] = document.getElementById(p+'_FK_'+fk+'_END_FilterMaxT');
-			if (SliderF[p][fk] != null && SliderTmin[p][fk] != null && SliderTmax[p][fk] != null && filterLims[p][fk] != null){
-				SliderInputs[p][fk] = [SliderTmin[p][fk], SliderTmax[p][fk]];
-				SliderInputs[p][fk][0].parent = SliderF[p][fk];
-				SliderInputs[p][fk][1].parent = SliderF[p][fk];
+			SliderFmin[p][fk] = document.getElementById(p+'_FK_'+fk+'_END_FilterMinT');
+			SliderFmax[p][fk] = document.getElementById(p+'_FK_'+fk+'_END_FilterMaxT');
+			if (SliderF[p][fk] != null && SliderFmin[p][fk] != null && SliderFmax[p][fk] != null && filterLims[p][fk] != null){
+				SliderFinputs[p][fk] = [SliderFmin[p][fk], SliderFmax[p][fk]];
+				SliderFinputs[p][fk][0].parent = SliderF[p][fk];
+				SliderFinputs[p][fk][1].parent = SliderF[p][fk];
 				min = filterLims[p][fk][0];
 				max = filterLims[p][fk][1];
 
@@ -162,24 +163,309 @@ function initFilters(){
 				});
 				SliderF[p][fk].noUiSlider.on('mouseup', mouseDown=false); 
 				SliderF[p][fk].noUiSlider.on('update', function(values, handle) {
-	// works for for mass (I need a better way to do this!)
 					var fpos = this.target.id.indexOf('_FK_');
 					var epos = this.target.id.indexOf('_END_');
 					var sl = this.target.id.length;
 					var pp = this.target.id.slice(0, fpos - sl);
 					var ffk = this.target.id.slice(fpos + 4, epos - sl);
-					SliderInputs[pp][ffk][handle].value = values[handle];
+					SliderFinputs[pp][ffk][handle].value = values[handle];
 					filterLims[pp][ffk][handle] = values[handle];
 					redraw = true;
 					mouseDown = true;
 				});
 
-				SliderInputs[p][fk].forEach(handleSliderText);
+				SliderFinputs[p][fk].forEach(handleFSliderText);
 			}
 		}
 	}
 }
 
+/////////////////////////////////////////////
+//need to link this to decimation
+// N sliders
+function setNSliderHandle(i, value, parent) {
+	var r = [null];
+	r[i] = value;
+	parent.noUiSlider.set(value);
+	var p = parent.id.slice(0, -8);
+	plotNmax[p] = value;
+	redraw = true;
+	mouseDown = false; //silly fix
+}
+
+// Listen to keydown events on the input field.
+// can I just use the same functions as for the filters?
+function handleNSliderText(input, handle) 
+{
+	input.addEventListener('change', function(){
+		setNSliderHandle(handle, this.value, this.parent);
+	});
+	input.addEventListener('keydown', function( e ) {
+		var value = Number(input.parent.noUiSlider.get());
+		var steps = input.parent.noUiSlider.options.steps;
+		var step = steps[handle];
+		switch ( e.which ) {
+			case 13:
+				setNSliderHandle(handle, this.value, input.parent);
+				break;
+			case 38:
+				setNSliderHandle(handle, value + step, input.parent);
+				break;
+			case 40:
+				setNSliderHandle(handle, value - step, input.parent);
+				break;
+		}
+	});
+};
+
+function createNsliders(){
+
+	var i = 0;
+	var j = 0;
+	for (i=0; i<partsKeys.length; i++){
+		p = partsKeys[i];
+
+		SliderN[p] = document.getElementById(p+'_NSlider');
+		SliderNmax[p] = document.getElementById(p+'_NMaxT');
+		if (SliderN[p] != null && SliderNmax[p] != null){
+			SliderNInputs[p] = [SliderNmax[p]];
+			SliderNInputs[p][0].parent = SliderN[p];
+			min = 0;
+			max = Math.round(parts[p].Coordinates.length/Decimate);
+
+			noUiSlider.create(SliderN[p], {
+				start: [max],
+				connect: true,
+				tooltips: [false],
+				steps: [1],
+				range: {
+					'min': [min],
+					'max': [max]
+				},
+				format: wNumb({
+				decimals: 0
+				})
+			});
+			SliderN[p].noUiSlider.on('mouseup', mouseDown=false); 
+			SliderN[p].noUiSlider.on('update', function(values, handle) {
+				var pp = this.target.id.slice(0, -8);
+				SliderNInputs[pp][handle].value = values[handle];
+				plotNmax[pp] = parseInt(values[handle]);
+				redraw = true;
+				mouseDown = false;
+			});
+
+			SliderNInputs[p].forEach(handleNSliderText);
+		}
+	}
+}
+
+/////////////////////////////////////////////
+// Psize sliders
+function setPSliderHandle(i, value, parent) {
+	var max = parent.noUiSlider.options.range.max[i];
+	if (value > max){
+		parent.noUiSlider.updateOptions({
+			range: {
+				'min': [0],
+				'max': [parseFloat(value)]
+			}
+		});
+	}
+	var r = [null];
+	r[i] = value;
+	parent.noUiSlider.set(value);
+	var p = parent.id.slice(0, -8);
+	PsizeMult[p] = value;
+	redraw = true;
+	mouseDown = false; //silly fix
+
+}
+
+// Listen to keydown events on the input field.
+// can I just use the same functions as for the filters?
+function handlePSliderText(input, handle) 
+{
+	input.addEventListener('change', function(){
+		setPSliderHandle(handle, this.value, this.parent);
+	});
+	input.addEventListener('keydown', function( e ) {
+		var value = Number(input.parent.noUiSlider.get());
+		var steps = input.parent.noUiSlider.options.steps;
+		var step = steps[handle];
+		//var max = max = document.getElementById(pID+"PRange").max;
+
+		switch ( e.which ) {
+			case 13:
+				setPSliderHandle(handle, this.value, input.parent);
+				break;
+			case 38:
+				setPSliderHandle(handle, value + step, input.parent);
+				break;
+			case 40:
+				setPSliderHandle(handle, value - step, input.parent);
+				break;
+		}
+	});
+};
+
+//need to allow this to update at large numbers
+function createPsliders(){
+
+	var i = 0;
+	var j = 0;
+	for (i=0; i<partsKeys.length; i++){
+		p = partsKeys[i];
+
+		SliderP[p] = document.getElementById(p+'_PSlider');
+		SliderPmax[p] = document.getElementById(p+'_PMaxT');
+		if (SliderP[p] != null && SliderPmax[p] != null){
+			SliderPInputs[p] = [SliderPmax[p]];
+			SliderPInputs[p][0].parent = SliderP[p];
+			min = 0.;
+			max = 5.;
+
+			noUiSlider.create(SliderP[p], {
+				start: [PsizeMult[p]],
+				connect: true,
+				tooltips: false,
+				steps: [0.1],
+				range: {
+					'min': [min],
+					'max': [max]
+				},
+				format: wNumb({
+				decimals: 1
+				})
+			});
+
+			SliderP[p].noUiSlider.on('mouseup', mouseDown=false); 
+			SliderP[p].noUiSlider.on('update', function(values, handle) {
+				var pp = this.target.id.slice(0, -8);
+				SliderPInputs[pp][handle].value = values[handle];
+				PsizeMult[pp] = parseFloat(values[handle]);
+				redraw = true;
+				mouseDown = false;
+			});
+
+			SliderPInputs[p].forEach(handlePSliderText);
+		}
+	}
+}
+
+/////////////////////////////////////////////
+// Decimation slider
+function setDSliderHandle(i, value, parent) {
+	value = Math.max(1, parseFloat(value));
+
+	var max = parent.noUiSlider.options.range.max[i];
+	if (value > max){
+		parent.noUiSlider.updateOptions({
+			range: {
+				'min': [1],
+				'max': [value]
+			}
+		});
+	}
+	var val;
+	for (i=0; i<partsKeys.length; i++){
+		var p = partsKeys[i];
+		max = Math.round(parts[p].Coordinates.length);
+	 	val = parseFloat(SliderN[p].noUiSlider.get());
+		SliderN[p].noUiSlider.updateOptions({
+			range: {
+				'min': [0],
+				'max': [Math.round(max/value)]
+			},
+		});
+		SliderN[p].noUiSlider.set(Math.min(max, val*Decimate/parseFloat(value)));
+	}
+	var r = [null];
+	r[i] = value;
+	parent.noUiSlider.set(value);
+	Decimate = value;
+	redraw = true;
+	mouseDown = false; //silly fix
+
+}
+
+// Listen to keydown events on the input field.
+// can I just use the same functions as for the filters?
+function handleDSliderText(input, handle) 
+{
+	input.addEventListener('change', function(){
+		setPSliderHandle(handle, this.value, this.parent);
+	});
+	input.addEventListener('keydown', function( e ) {
+		var value = Number(input.parent.noUiSlider.get());
+		var steps = input.parent.noUiSlider.options.steps;
+		var step = steps[handle];
+		//var max = max = document.getElementById(pID+"PRange").max;
+
+		switch ( e.which ) {
+			case 13:
+				setDSliderHandle(handle, this.value, input.parent);
+				break;
+			case 38:
+				setDSliderHandle(handle, value + step, input.parent);
+				break;
+			case 40:
+				setDSliderHandle(handle, value - step, input.parent);
+				break;
+		}
+	});
+};
+
+//need to allow this to update at large numbers
+function createDslider(){
+
+	SliderD = document.getElementById('DSlider');
+	SliderDmax = document.getElementById('DMaxT');
+	if (SliderD != null && SliderDmax != null){
+		SliderDInputs = [SliderDmax];
+		SliderDInputs[0].parent = SliderD;
+		min = 1.;
+		max = 100.;
+
+		noUiSlider.create(SliderD, {
+			start: [1],
+			connect: true,
+			tooltips: false,
+			steps: [1],
+			range: {
+				'min': [min],
+				'max': [max]
+			},
+			format: wNumb({
+			decimals: 0
+			})
+		});
+
+		SliderD.noUiSlider.on('mouseup', mouseDown=false); 
+		SliderD.noUiSlider.on('update', function(values, handle) {
+			for (i=0; i<partsKeys.length; i++){
+				var p = partsKeys[i];
+				var max = Math.round(parts[p].Coordinates.length);
+				var val = parseFloat(SliderN[p].noUiSlider.get());
+				SliderN[p].noUiSlider.updateOptions({
+					range: {
+						'min': [0],
+						'max': [Math.round(max/parseFloat(values[handle]))]
+					}
+				});
+				SliderN[p].noUiSlider.set(Math.min(max, val*Decimate/parseFloat(values[handle])));
+
+			}
+
+			SliderDInputs[handle].value = values[handle];
+			Decimate = parseFloat(values[handle]);
+			redraw = true;
+			mouseDown = false;
+		});
+
+		SliderDInputs.forEach(handleDSliderText);
+	}
+}
 function updateUICenterText()
 {
     document.getElementById("CenterXText").value = center[0];
@@ -199,33 +485,7 @@ function updateUIRotText()
     document.getElementById("RotXText").value = xrot;
     document.getElementById("RotYText").value = yrot;
 }
-function checkSlider(slider)
-{
-	tickN = 1;
 
-//N sliders
-	var type = slider.id.slice(-6); 
-	if (type == 'NRange'){
-		pID = slider.id.slice(0,-6); // remove  "Nrange" from id
-		document.getElementById(pID+"NText").value = slider.value;
-		plotNmax[pID] = Math.round(slider.value)
-	}
-
-	if (type == 'PRange'){
-		pID = slider.id.slice(0,-6); // remove  "PRange" from id
-		PsizeMult[pID] = slider.value/100.;
-		document.getElementById(pID+"PText").value = slider.value/100.;
-	}
-
-    if (slider.id == "DecimateRange"){
-        Decimate = Math.round(slider.value);
-        document.getElementById("DecimateText").value = slider.value;
-        initNsliders();
-        applyFilterDecimate(reset=true);
-	}
-
-	redraw = true;
-}
 
 function checkText(input, event)
 {
@@ -235,31 +495,6 @@ function checkText(input, event)
   		tickN = 1;
 		redraw = true;
 
-		//N sliders
-		var type = input.id.slice(-5); 
-		var pID = input.id.slice(0,-5); // remove  "NText" from id
-
-		var max;
-
-		//console.log(type);
-		if (type == 'NText'){
-			document.getElementById(pID+"NRange").value = input.value;
-			plotNmax[pID] = Math.round(input.value)
-		}
-
-		if (type == "PText"){
-			PsizeMult[pID] = input.value;
-			max = document.getElementById(pID+"PRange").max;
-			document.getElementById(pID+"PRange").max = Math.max(100.*input.value, max);
-			document.getElementById(pID+"PRange").value = 100.*input.value;
-		}
-
-        if (input.id == "DecimateText"){
-	        document.getElementById("DecimateRange").value = input.value;
-	        Decimate = Math.round(input.value);
-	        initNsliders();
-	        applyFilterDecimate(reset=true);
-		}
 
         if (input.id == "CenterXText"){
         	center[0] = parseFloat(input.value);
@@ -484,23 +719,15 @@ function createUI(){
 		onoff.append('span')
 			.attr('class','slideroo');
 
-		controls.append('input')
-			.attr('id', d+'PRange')
-			.attr('class', 'sliderps')
-			.attr('type', 'range')
-			.attr('min', '0')
-			.attr('max', '500')
-			.attr('value',PsizeMult[d]*100)
-			.attr('autocomplete','off')
-			.attr('oninput','checkSlider(this)');
+
+		controls.append('div')
+			.attr('id',d+'_PSlider')
+			.attr('class','PSliderClass');
 
 		controls.append('input')
-			.attr('id', d+'PText')
-			.attr('class', 'pTextInput')
-			.attr('type', 'text')
-			.attr('value', PsizeMult[d])
-			.attr('autocomplete','off')
-			.attr('onkeypress','checkText(this, event)');
+			.attr('id',d+'_PMaxT')
+			.attr('class', 'PMaxTClass')
+			.attr('type','text');
 
 		controls.append('input')
 			.attr('id',d+'ColorPicker');
@@ -523,27 +750,15 @@ function createUI(){
 			.attr('style','width:20px')
 			.text('N');
 
+		dNcontent.append('div')
+			.attr('id',d+'_NSlider')
+			.attr('class','NSliderClass');
 
 		dNcontent.append('input')
-			.attr('id',d+'NRange')
-			.attr('class','sliderps')
-			.attr('style','width:165px; background:#a3a3a3')
-			.attr('type','range')
-			.attr('min','0')
-			.attr('max','100')
-			.attr('value','0')
-			.attr('autocomplete','off')
-			.attr('oninput','checkSlider(this)');
+			.attr('id',d+'_NMaxT')
+			.attr('class', 'NMaxTClass')
+			.attr('type','text');
 
-		dNcontent.append('input')
-			.attr('id',d+'NText')
-			.attr('class','pTextInput')
-			.attr('style','width:50px')
-			.attr('type','text')
-			.attr('value','1')
-			.attr('autocomplete','off')
-			.attr('onkeypress','checkText(this, event)');
-	
 		var dheight = 30;
 
 //for velocity vectors
@@ -663,7 +878,12 @@ function createUI(){
 
 	}
 
-    initNsliders(dovalues=true);
+// create all the noUISliders
+	createPsliders();
+	createNsliders();
+	createDslider();
+    //initNsliders(dovalues=true);
+    createFilterSliders();
 
 
 };
