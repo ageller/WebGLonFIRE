@@ -94,12 +94,17 @@ var SliderD;
 var SliderDmin;
 var SliderDmax;
 var SliderDInputs;
+var keepAlpha = true;
+
+//help screen
+var helpMessage = 1;
 
 function webGLStart() {
 
-  while (!loaded){
-    checkloaded();
-  }
+
+    while (!loaded){
+        checkloaded();
+    }
 
     canvas = document.getElementById("WebGL-canvas");
    	initGL();
@@ -131,6 +136,7 @@ function webGLStart() {
     canvas.addEventListener('mousewheel', handleMouseWheel)
     canvas.addEventListener('DOMMouseScroll', handleMouseWheel);
     window.addEventListener("resize", handleResize);
+    document.addEventListener("keypress", handleKeyPress)
     canvas.onwheel = function(event){ event.preventDefault(); };
     canvas.onmousewheel = function(event){ event.preventDefault(); };
 
@@ -141,7 +147,6 @@ function webGLStart() {
 
     drawit = true;
     tick();
- // });
 
 }
 
@@ -312,21 +317,6 @@ function initCone(s, h, dAng = 10.){
 
     }
 
-    /* bottom circle */ 
-    /*for (var k=0; k<=360; k+=dAng){
-        vertices.push(0);
-        vertices.push(0);
-        vertices.push(0);
-
-        vertices.push(s*Math.cos(degToRad(k)));
-        vertices.push(0);
-        vertices.push(s*Math.sin(degToRad(k)));
-
-        vertices.push(s*Math.cos(degToRad(k + dAng)));
-        vertices.push(0);
-        vertices.push(s*Math.sin(degToRad(k + dAng)));
-    }*/
-
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     VertexPositionBuffer.itemSize = 3;
     VertexPositionBuffer.numItems = Nvert;
@@ -438,7 +428,6 @@ function calcFilterLimits(p, fkey){
 	   		min = Math.min(min, parts[p][fkey][i]);
 	   		max = Math.max(max, parts[p][fkey][i]);
 	   	}
-	   	//console.log(p,fkey, "min,max",min,max, filterLims)
 	   	//need to add a small factor here because of the precision of noUIslider
 	   	min -= 0.001;
 	   	max += 0.001;
@@ -447,7 +436,6 @@ function calcFilterLimits(p, fkey){
 }
 
 function initShowParts(){
-	//I wonder if I should create a separate parts so that I don't have to loop over the entire array
 	partsUse = {};
 	for (var i=0; i< partsKeys.length; i++){
 		partsUse[partsKeys[i]] = [];	

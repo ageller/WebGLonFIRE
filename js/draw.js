@@ -1,9 +1,7 @@
-
 function setMatrixUniforms() {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
-
 
 
 function drawScene() {
@@ -33,12 +31,14 @@ function drawScene() {
 
 			if (showVel[p]){
 	        	//initLine(PsizeMult[p]);
+	    	    gl.uniform1f(shaderProgram.oIDUniform, 1);
 	        	switch(velType[p]) {
 				    case 'line':
 				        initCylinder(0.1,1.);
 				        break;
 				    case 'arrow':
 				        initArrow(1.);
+        	    	    gl.uniform1f(shaderProgram.oIDUniform, 2);
 				        break;
 				    case 'cone':
 				        initCone(0.1,1.);
@@ -46,7 +46,6 @@ function drawScene() {
 				    default:
 				        initCylinder(0.1,1.);
 				} 
-	    	    gl.uniform1f(shaderProgram.oIDUniform, 1);
 
 			} else{
 				initQuad();
@@ -58,11 +57,13 @@ function drawScene() {
   			inputRad = false;
   			inputWeight = false;
 
-    		//useAlpha = 1;
 			if (mouseDown || tickN < tickwait){
-				useAlpha *= parts[p].Coordinates.length / Math.min(parts[p].Coordinates.length, parts[p].nMaxPlot);
-;
+				if (!keepAlpha){
+					useAlpha *= parts[p].Coordinates.length / Math.min(parts[p].Coordinates.length, parts[p].nMaxPlot);
+				}
 				redraw = true;
+			} else {
+
 			}
 			
 			if (parts[p].partRadius != null){
@@ -89,9 +90,6 @@ function drawScene() {
 	        	mvMatrix = mat4.create(mvMatrix0);
 		        //whatever is added here to positions defines the center of rotation
         		mat4.translate(mvMatrix, [parts[p].Coordinates[indices[i]][0] - center[0], parts[p].Coordinates[indices[i]][1] - center[1], parts[p].Coordinates[indices[i]][2] - center[2]]);		          
-
-
-
 
 
 		        if (showVel[p]){
@@ -135,7 +133,6 @@ function drawScene() {
 
 
 function applyFilterDecimate(reset=false){
-	//console.log("in applyFilterDecimate")
     rotateFrustum();
 	drawit = true;
 
@@ -146,25 +143,20 @@ function applyFilterDecimate(reset=false){
 	var jmax;
 	var mass;
 	var include = false;
-	//console.log(partsKeys)
 	if (mouseDown || tickN < tickwait || reset){
 		pposMin = [0,0,0,0];
 		pposMax = [0,0,0,0];
-		//console.log("resetting ppos", tickN, tickwait, mouseDown, reset)
 	}
 
     for (i=0; i< partsKeys.length; i++){
     	p = partsKeys[i]
-    	//console.log(partsKeys[i])
     	if (pposMax[i] == 0){
-    		//console.log("resetting partsUse",i)
     		partsUse[p] = [];
     	}
 		jmax = Math.round(parts[p].Coordinates.length / Decimate);
 		pposMin[i] = partsUse[p].length;
     	var Nplotted = 0;
-    	//console.log(i, jmax, pposMin[i], pposMax[i])
-    	//if (pposMax[i] < jmax){console.log("drawing",i)}
+
    		for (j=pposMax[i]; j< jmax; j++){
 //test if it's in the frustum
 			if (testPointInFrustum(parts[p].Coordinates[j])) {
@@ -190,47 +182,27 @@ function applyFilterDecimate(reset=false){
    				break;
    			}
    		}
-   		//console.log("first", i,j, pposMin, pposMax)
    		pposMax[i] = j;
-   		//console.log("second", i,j, pposMin, pposMax)
 
    	}
-   	//console.log(partsKeys)
-   	//console.log("N Gas particles",partsUse[partsKeys[0]].Coordinates.length, pposMin, drawit, Nplotted)
-   	//console.log("N HRDM particles",partsUse[partsKeys[1]].Coordinates.length, pposMin, drawit, Nplotted)
-   	//console.log("N LRDM particles",partsUse[partsKeys[2]].Coordinates.length, pposMin, drawit, Nplotted)
-   	//console.log("N Stars particles",partsUse[partsKeys[3]].Coordinates.length, pposMin, drawit, Nplotted)
+
 }
 
 
-
 function tick() {
-
-
-	//setInterval(function () {
-	//console.log("in tick", tickN, tickwait, redraw, drawit)
 	if (drawit || redraw){
 	    tickN += 1;
 	    if (!checkalldrawn() || redraw){
-	    	//console.log("calling applyFilterDecimate")
 	    	applyFilterDecimate(reset = redraw);
-	    	//drawit = false;
-	    	//console.log(checkalldrawn(), pposMin, pposMax, drawit, tickN, tickwait, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].Coordinates.length);
-	    	//console.log("drawScene")
 	    	redraw = false;
         	drawScene();
-	    	//drawit = false;
 	    }
 	    if (checkalldrawn()){
-	    	console.log("all drawn", pposMax, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].length);
+	    	//console.log("all drawn", pposMax, parts[partsKeys[0]].Coordinates.length, partsUse[partsKeys[0]].length);
 	    	drawit = false;
-	    	//tickN = 1;
 	    }
-
 	}
-	//}, 10);
 	requestAnimationFrame(tick);
-
 }
 
 

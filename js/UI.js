@@ -27,7 +27,6 @@ function checkVelBox(box)
 	if (box.checked){
 		showVel[pID] = true;
 	}
-//	console.log(pID, showVel[pID])
 
 }
 
@@ -41,24 +40,6 @@ function checkColor(event, color)
 	redraw = true;	
 }
 
-function initNsliders(dovalues = false){
-	var i = 0;
-	for (i=0; i< partsKeys.length; i++){
-		p = partsKeys[i];
-		var Nr = document.getElementById(p+"NRange");
-		var Nt = document.getElementById(p+"NText");
-		Np = Math.round(parts[p].Coordinates.length/Decimate);
-		if (Nr != null && Nt != null){
-			Nr.max = Np;
-			if (dovalues){
-				Nr.value = Np;
-				Nt.value = Np;
-				//plotNmax[p] = Np;
-			}
-		}
-	}
-	drawit = true;
-}
 
 /////////////////////////////////////////////
 // Filter sliders
@@ -76,7 +57,7 @@ function setFSliderHandle(i, value, parent) {
 
 	filterLims[p][fk][i] = value;
 	redraw = true;
-	mouseDown = false; //silly fix
+	mouseDown = false; 
 }
 
 // Listen to keydown events on the input field.
@@ -129,6 +110,7 @@ function createFilterSliders(){
 
 	var i = 0;
 	var j = 0;
+	var w = parseInt(d3.select('.FilterClass').style("width").slice(0,-2));
 	for (i=0; i<partsKeys.length; i++){
 		p = partsKeys[i];
 		SliderF[p] = {};
@@ -172,16 +154,20 @@ function createFilterSliders(){
 					filterLims[pp][ffk][handle] = values[handle];
 					redraw = true;
 					mouseDown = true;
+					//keepAlpha = true;
 				});
 
 				SliderFinputs[p][fk].forEach(handleFSliderText);
 			}
+			d3.select('#'+p+'_FK_'+fk+'_END_FilterSlider').select('.noUi-base').style('width',w-10+"px");
+		 	d3.select('#'+p+'_FK_'+fk+'_END_FilterSlider').select('.noUi-connect').style('border-radius','6px 0px 0px 6px');
+		 	d3.select('#'+p+'_FK_'+fk+'_END_FilterSlider').select('.noUi-handle-lower').style('border-radius','6px 0px 0px 6px');
+
 		}
 	}
 }
 
 /////////////////////////////////////////////
-//need to link this to decimation
 // N sliders
 function setNSliderHandle(i, value, parent) {
 	var r = [null];
@@ -190,7 +176,7 @@ function setNSliderHandle(i, value, parent) {
 	var p = parent.id.slice(0, -8);
 	plotNmax[p] = value;
 	redraw = true;
-	mouseDown = false; //silly fix
+	mouseDown = false; 
 }
 
 // Listen to keydown events on the input field.
@@ -235,7 +221,7 @@ function createNsliders(){
 
 			noUiSlider.create(SliderN[p], {
 				start: [max],
-				connect: true,
+				connect: [true, false],
 				tooltips: [false],
 				steps: [1],
 				range: {
@@ -252,11 +238,14 @@ function createNsliders(){
 				SliderNInputs[pp][handle].value = values[handle];
 				plotNmax[pp] = parseInt(values[handle]);
 				redraw = true;
-				mouseDown = false;
+				mouseDown = true;
 			});
 
 			SliderNInputs[p].forEach(handleNSliderText);
 		}
+		w = parseInt(d3.select('#'+p+'_NSlider').style('width').slice(0,-2));
+		d3.select('#'+p+'_NSlider').select('.noUi-base').style('width',w-10+"px");
+
 	}
 }
 
@@ -278,7 +267,7 @@ function setPSliderHandle(i, value, parent) {
 	var p = parent.id.slice(0, -8);
 	PsizeMult[p] = value;
 	redraw = true;
-	mouseDown = false; //silly fix
+	mouseDown = false; 
 
 }
 
@@ -327,7 +316,7 @@ function createPsliders(){
 
 			noUiSlider.create(SliderP[p], {
 				start: [PsizeMult[p]],
-				connect: true,
+				connect: [true, false],
 				tooltips: false,
 				steps: [0.1],
 				range: {
@@ -345,11 +334,15 @@ function createPsliders(){
 				SliderPInputs[pp][handle].value = values[handle];
 				PsizeMult[pp] = parseFloat(values[handle]);
 				redraw = true;
-				mouseDown = false;
+				mouseDown = true;
+				//keepAlpha = true;
+
 			});
 
 			SliderPInputs[p].forEach(handlePSliderText);
 		}
+		w = parseInt(d3.select('#'+p+'_PSlider').style('width').slice(0,-2));
+		d3.select('#'+p+'_PSlider').select('.noUi-base').style('width',w-10+"px");
 	}
 }
 
@@ -385,7 +378,7 @@ function setDSliderHandle(i, value, parent) {
 	parent.noUiSlider.set(value);
 	Decimate = value;
 	redraw = true;
-	mouseDown = false; //silly fix
+	mouseDown = false; 
 
 }
 
@@ -429,7 +422,7 @@ function createDslider(){
 
 		noUiSlider.create(SliderD, {
 			start: [1],
-			connect: true,
+			connect: [true, false],
 			tooltips: false,
 			steps: [1],
 			range: {
@@ -460,11 +453,14 @@ function createDslider(){
 			SliderDInputs[handle].value = values[handle];
 			Decimate = parseFloat(values[handle]);
 			redraw = true;
-			mouseDown = false;
+			mouseDown = true;
+			//keepAlpha = true;
 		});
 
 		SliderDInputs.forEach(handleDSliderText);
 	}
+	w = parseInt(d3.select("#DSlider").style("width").slice(0,-2));
+	d3.select("#DSlider").select('.noUi-base').style('width',w-10+"px");
 }
 function updateUICenterText()
 {
@@ -762,7 +758,11 @@ function createUI(){
 		var dheight = 30;
 
 //for velocity vectors
+
 		if (parts[d].Velocities != null){
+			dropdown.append('hr')
+				.style('margin','0')
+				.style('border','1px solid #909090')
 
 			dVcontent = dropdown.append('div')
 				.attr('class','NdDiv');
@@ -806,9 +806,13 @@ function createUI(){
 		if (nfilt > 0){
 			dheight += 70;
 
+			dropdown.append('hr')
+				.style('margin','0')
+				.style('border','1px solid #909090')
+
 			var selectF = dropdown.append('div')
-				.attr('style','margin:0px;  padding:5px; height:20px;')
-				.html('<b>Filters</b>')	
+				.attr('style','margin:0px;  padding:5px; height:20px')
+				.html('Filters &nbsp')	
 
 				.append('select')
 				.attr('class','selectFilter')
@@ -835,7 +839,8 @@ function createUI(){
 						.attr('class','FilterClassLabel')
 
 					dfilters.append('div')
-						.attr('id',d+'_FK_'+fk+'_END_FilterSlider');
+						.attr('id',d+'_FK_'+fk+'_END_FilterSlider')
+						.style("margin-top","-1px")
 
 					dfilters.append('input')
 						.attr('id',d+'_FK_'+fk+'_END_FilterMinT')
@@ -882,7 +887,6 @@ function createUI(){
 	createPsliders();
 	createNsliders();
 	createDslider();
-    //initNsliders(dovalues=true);
     createFilterSliders();
 
 

@@ -1,6 +1,7 @@
 console.log("loading ...")
+
 //hide the rest of the page
-d3.select("#ContentContainer").style("visibility","hidden");
+//d3.select("#ContentContainer").style("visibility","hidden");
 
 // loader settings
 var opts = {
@@ -15,6 +16,7 @@ var opts = {
 };
 
 var target = document.getElementById("loader");
+d3.select("#splashdiv5").text("You will see a loading spinner until the data is loaded.");
 
-// trigger loader
+// trigger spinner
 var spinner = new Spinner(opts).spin(target);

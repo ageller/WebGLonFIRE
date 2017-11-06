@@ -1,5 +1,4 @@
 function fullscreen(){
- //   var elem = document.getElementById('WebGL-canvas');
     var elem = document.getElementById('ContentContainer');
     saveWidth = elem.width;
     saveHeight = elem.height;
@@ -28,7 +27,6 @@ if (document.addEventListener)
 
 function exitHandler()
 {
-    //var elem = document.getElementById('WebGL-canvas');
     var elem = document.getElementById('ContentContainer');
 
     if (document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenElement != null){
@@ -39,6 +37,41 @@ function exitHandler()
         elem.height = saveHeight;
     }
 
+}
+
+//hide the splash screen
+function hideSplash(){
+    if (loaded){
+        helpMessage = 0;
+        var fdur = 700.;
+
+        var splash = d3.select("#splash");
+
+        splash.transition()
+            .ease(d3.easeLinear)
+            .duration(fdur)
+            .style("opacity", 0)
+            .on("end", function(d){
+                splash.style("display","none");
+            })
+    }
+}
+
+//hide the splash screen
+function showSplash(){
+    if (loaded){
+        helpMessage = 1;
+        var fdur = 700.;
+
+        var splash = d3.select("#splash");
+        splash.style("display","block");
+
+        splash.transition()
+            .ease(d3.easeLinear)
+            .duration(fdur)
+            .style("opacity", 0.8);
+    }
+    
 }
 
 //handle window resize event
@@ -53,12 +86,25 @@ function handleResize(event){
     rotateFrustum();
 }
 
+function handleKeyPress(event){
+    // h -> help 
+    if (event.charCode==104){
+        helpMessage=!helpMessage;
+        if (helpMessage){
+            showSplash();
+        }
+        else{
+            hideSplash()
+        }
+    }
+}
+
 //handle Mouse events
+var ignoreMouseClasses = ["pTextInput", "sp-preview-inner", "dropbtn", "FilterMaxTClass", "FilterMinTClass" , "select", "bar1", "bar2", "bar3", "button-div", "pLabelDiv", "selectFilter", "selectVelType",  "NMaxTClass",  "PMaxTClass", "NSliderClass", "PSliderClass", "slideroo", "sp-choose", "sp-input", "select-style"];
+var ignoreMouseIds = ["UItopbar", "ControlsText", "Hamburger", "renderButton", "CenterCheckDiv", "CenterCheckBox", "CenterCheckLabel", "splash"];
 function handleMouseDown(event) {
-    //console.log(event.target.className)
-    if (event.target.className == "pTextInput" || event.target.className == "sp-preview-inner" || event.target.className == "dropbtn" || event.target.className == "FilterMaxTClass" || event.target.className == "FilterMinTClass" || event.target.id == "UItopbar" || event.target.className == "select" || event.target.className == "bar1" || event.target.className == "bar2" || event.target.className == "bar3" || event.target.id == "ControlsText" || event.target.id == "Hamburger" || event.target.id =="renderButton" || event.target.className == "button-div" || event.target.id == "CenterCheckDiv" || event.target.id == "CenterCheckBox" || event.target.id == "CenterCheckLabel" || event.target.className == "pLabelDiv" || event.target.className == "selectFilter" || event.target.className == "selectVelType" || event.target.className == "NMaxTClass" || event.target.className == "PMaxTClass"  || event.target.className == "NSliderClass" || event.target.className == "PSliderClass" || event.target.className == "noUi-base"){
-        //tickN = 1;
-        //tickwait = addtickwait;
+    if (ignoreMouseClasses.indexOf(event.target.className) >= 0 || ignoreMouseIds.indexOf(event.target.id) >= 0 ||  event.target.className.indexOf("noUi")  >= 0 || event.target.className.indexOf("Slider")  >= 0 || event.target.id.indexOf("splash")  >= 0){
+
         return;
     }
     mouseDown = true;
@@ -71,9 +117,10 @@ function handleMouseUp(event) {
 }
 
 function handleMouseMove(event) {    
-    if (!mouseDown || event.target.id != "WebGL-canvas") {
+    if (!mouseDown || event.target.id != "WebGL-canvas" ) {
         return;
     }
+
     var newX = event.clientX;
     var newY = event.clientY;
 
@@ -91,9 +138,7 @@ function handleMouseMove(event) {
         dxrot = deltaX / canvas.width;
         dyrot = deltaY / canvas.height;
     } 
-    //if (event.which == 2) {
-    //    dz = deltaY * 10.;
-    //}
+
 
     xrot -= dxrot*fac;
     xrot = xrot % 360.;
@@ -138,7 +183,6 @@ function handleMouseWheel(event)
 
 function render() {
     var buttonDiv = document.getElementById("button-div");
-    //buttonDiv.style.backgroundColor = "#4E2A84";
 
     saveWidth = canvas.width;
     saveHeight = canvas.height;
@@ -169,8 +213,6 @@ function render() {
             //window.open(url);
             w.document.write("<img src='" + d + "' alt='from canvas'/>");
 
-            //buttonDiv.style.backgroundColor = "#339999";
-
             //now reset the view
             canvas.width = saveWidth;
             canvas.height = saveHeight;
@@ -183,9 +225,6 @@ function render() {
             clearInterval(i);
         }
     }, 200);
-
-
-
 
 
 }

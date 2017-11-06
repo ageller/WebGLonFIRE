@@ -62,19 +62,22 @@ function checkalldrawn(){
     return true;
 }
 
-
 //check if the data is loaded
 function checkloaded(){
-  if (parts != null){
-    // stop spin.js loader
-    spinner.stop();
+    if (parts != null){
+        // stop spin.js loader
+        spinner.stop();
 
-    //show the rest of the page
-    d3.select("#ContentContainer").style("visibility","visible")
+        //show the rest of the page
+        d3.select("#ContentContainer").style("visibility","visible")
 
-    loaded = true;
-    console.log("loaded")
-  }
+        loaded = true;
+        console.log("loaded")
+        d3.select("#loader").style("display","none")
+        d3.select("#splashdiv5").text("Click to begin.");
+
+
+    }
 }
 
 function checkzeros(element, index, array){

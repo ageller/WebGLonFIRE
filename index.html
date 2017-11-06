@@ -1,4 +1,3 @@
-<!-- Licensed under a BSD license. See license.html for license -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,10 +10,27 @@
 
     <div style="background-color:black; position:absolute; top:0; bottom:0; left:0; right:0;" id='loader'></div>
 
+	<div id="ContentContainer" > <!-- class="container" id="ContentContainer"> -->
 
-	<div id="ContentContainer"> <!-- class="container" id="ContentContainer"> -->
+	  	<div id="splash" onclick="hideSplash()">
+		  	<div id="splashdiv1">WebGLonFIRE: </div>
+		  	<div id="splashdiv2">A WebGL tool to explore particle-based data</div>
+		  	<div id="splashdiv3">Aaron Geller / Alex Gurvich / Northwestern</div>
+		  	<div id="splashdiv4">
+		  		<p><b>Instructions:</b></p>
+	  			<ul>
+	  				<li>Right-click and drag with the mouse to rotate your view. </li>
+	  				<li>Use the mouse wheel to zoom in and out. </li>
+	  				<li>Click the Controls bar on the top left to show/hide a user interface.</li>
+	  				<li>Detailed instructions can be found on <a href="https://github.com/ageller/WebGLonFIRE" target="_blank">the WebGLonFIRE GitHub page.</a> </li>
+	  				<li><b>h</b>: toggles this help screen on and off. </li>
+	  			</ul>
+  			</div>
+		  	<div id="splashdiv5"></div>
+	  	</div>
 
-	  	<div class="UIcontainer"> 
+
+	  	<div class="UIcontainer" style="visibility:hidden"> 
 	<!-- top banner, to hide UI -->
 			<div class="UItopbar" id="UItopbar" onclick="hideUI(this);">
 				<table style="margin:0; padding:0">
@@ -81,7 +97,7 @@
 				<!-- Decimation -->
 		      	<div class="particleDiv" id="DecimationDiv" >
 		      		<div class='pLabelDiv' style="width:85px"> Decimation </div>
-		      		<div id='DSlider' class='PSliderClass' style="margin-top:-15px; width:140px"></div>
+		      		<div id='DSlider' class='PSliderClass' style="margin-top:-22px; width:145px"></div>
 		      		<input id='DMaxT' class='PMaxTClass' type='text' style="left:245px; width:20px">
 		    	</div>	
 		    	<div id="particleUI"></div>
@@ -114,14 +130,12 @@
 	<!-- d3 -->
 	<script src="resources/d3.v4.10.2.min.js"></script>
 
-Ω
+
 	<!-- shaders -->
     <script src="shaders/vertex.glsl.js"></script>
     <script src="shaders/fragment.glsl.js"></script>
 
     <!-- the main attraction -->
-    <script src="js/startspinner.js"></script>
-	<script src="data/FIREdata.json"></script>
     <link rel="stylesheet" type="text/css" href="css/index.css" />
 	
 	<script src="js/init.js"></script>
@@ -133,5 +147,10 @@
 
 
 </body>
+
+<!-- the data -->
+<script src="js/startspinner.js"></script>
+<script src="data/FIREdata.json"></script>
+
 </html>
 

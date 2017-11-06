@@ -122,14 +122,12 @@ function rotateFrustum(){
     // loop through each center vector/normal vector
     rcvecs = [fc,nc,pcl,pcr,pcu,pcd];
     rnvecs = [fn,nn,pln,prn,pun,pdn];
-    //console.log("rotateFrustum in", rcvecs, rnvecs)
     for (var i=0; i<rnvecs.length; i++){
         // rotate the plane centers
         rcvecs[i] = myInverse(rcvecs[i])
         // rotate the plane normal vectors (doesn't need to be translated)
         rnvecs[i] = myNormalInverse(rnvecs[i])
     }
-    //console.log("rotateFrustum out", rcvecs, rnvecs)
 }
 
 function testPointInFrustum(coord){
@@ -137,31 +135,10 @@ function testPointInFrustum(coord){
     var boolTest = true;
     var intest = true;
     for (var i=0; i < rnvecs.length; i++){
-        // short circuit if it's already failed
         intest = (((coord[0] - center[0] - rcvecs[i][0])*rnvecs[i][0] + (coord[1] - center[1] - rcvecs[i][1])*rnvecs[i][1] + (coord[2] - center[2] - rcvecs[i][2])*rnvecs[i][2]) <= 0)
         boolTest = boolTest&&intest;
-        //console.log(coord,(coord[0]- rcvecs[i][0])*rnvecs[i][0], (coord[1]- rcvecs[i][1])*rnvecs[i][1], (coord[2]- rcvecs[i][2])*rnvecs[i][2], (coord[0]- rcvecs[i][0])*rnvecs[i][0] + (coord[1]- rcvecs[i][1])*rnvecs[i][1] + (coord[2]- rcvecs[i][2])*rnvecs[i][2], boolTest);
- 		//console.log(coord,rcvecs[i], rnvecs[i], intest, boolTest)
     }
-    //if (boolTest){
-    //	console.log("plotting", coord)
-    //}
+
     return boolTest
 }
-
-
-/* ############### invocation of functions ################# */
-/*function drawScene() {
-    rotateFrustum();
-    for (var i; i<npoints;i++){
-        // see if this point lives in the camera
-            if (testPointInFrustrum(myparts.coords[i],rcvecs,rnvecs)){
-                drawParticle()
-    }
-}
-
-function webGLStart() {
-    initFrustumPlanes();
-}
-*/   
 
