@@ -178,7 +178,7 @@ function applyFilterDecimate(reset=false){
 				Nplotted += 1;   
 
    			}
-   			if (Nplotted >= parts[p].nMaxPlot){
+   			if (Nplotted >= parts[p].nMaxPlot || (touch && Nplotted >= 100)){
    				break;
    			}
    		}

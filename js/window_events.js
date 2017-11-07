@@ -112,8 +112,16 @@ function handleMouseDown(event) {
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
     if (lastMouseX == null){
+        touch = true;
+        event.preventDefault;
         lastMouseX = event.touches[0].clientX;
         lastMouseY = event.touches[0].clientY;
+        // Cache the touch points for later processing of 2-touch pinch/zoom
+        if (event.targetTouches.length == 2) {
+            for (var i=0; i < event.targetTouches.length; i++) {
+                tpCache.push(event.targetTouches[i]);
+            }
+        }
     }
 }
 function handleMouseUp(event) {
@@ -127,14 +135,21 @@ function handleMouseMove(event) {
 
     var newX = event.clientX;
     var newY = event.clientY;
-    var touch = false;
 
     if (newX == null){
         touch = true;
+        event.preventDefault();
         newX = event.touches[0].clientX;
         newY = event.touches[0].clientY;
     }
 
+    if (touch){
+
+        if (event.touches.length > 1 || event.targetTouches.length > 1){
+            handle_pinch_zoom(event);
+            return
+        }
+    }
 
     var deltaX = newX - lastMouseX
     var deltaY = newY - lastMouseY;
@@ -161,20 +176,13 @@ function handleMouseMove(event) {
     setmvMatrix0();
     redraw = true;
     applyFilterDecimate(reset=true);
+    
 }
 
 
-
-//https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
-function handleMouseWheel(event) 
-{
-    // Determine the direction of the scroll (< 0 = up, > 0 = down).
-    //var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
-
-    var dr = event.deltaY;//delta*5.
-
+function zoom(dr){
     if (rotatecamera){
-      camerapos[2] -= dr; //Note: this is the opposite direction, but behaves the same way to user as below
+        camerapos[2] -= dr; //Note: this is the opposite direction, but behaves the same way to user as below
     } else {
         c0 = [0., 0., dr];
         rotate(c0, degToRad(xrot), degToRad(yrot), 0.);
@@ -190,9 +198,51 @@ function handleMouseWheel(event)
     tickwait = addtickwait;
     redraw = true;
     applyFilterDecimate(reset=true);
+}
+
+//https://stackoverflow.com/questions/25204282/mousewheel-wheel-and-dommousescroll-in-javascript
+function handleMouseWheel(event) 
+{
+    // Determine the direction of the scroll (< 0 = up, > 0 = down).
+    //var delta = ((event.deltaY || -event.wheelDelta || event.detail) >> 10) || 1;
+
+    var dr = event.deltaY;//delta*5.
+    zoom(dr);
 
 }
 
+
+function handle_pinch_zoom(event) {
+
+    if (event.targetTouches.length == 2 && event.changedTouches.length == 2) {
+        // Check if the two target touches are the same ones that started
+        // the 2-touch
+        var point1=-1, point2=-1;
+        for (var i=0; i < tpCache.length; i++) {
+            if (tpCache[i].identifier == event.targetTouches[0].identifier) point1 = i;
+            if (tpCache[i].identifier == event.targetTouches[1].identifier) point2 = i;
+        }
+        if (point1 >= 0 && point2 >= 0) {
+            // Calculate the difference between the start and move coordinates
+            var dx1 = Math.abs(tpCache[point1].clientX - tpCache[point2].clientX) / event.target.clientWidth;
+            var dx2 = Math.abs(event.targetTouches[0].clientX - event.targetTouches[1].clientX) / event.target.clientWidth;
+            var dy1 = Math.abs(tpCache[point1].clientY- tpCache[point2].clientY) / event.target.clientHeight;
+            var dy2 = Math.abs(event.targetTouches[0].clientY - event.targetTouches[1].clientY) / event.target.clientHeight;
+
+            dz = ((dx1 + dy1) - (dx2 + dy2)) * 20.;
+            zoom(dz);
+
+            tpCache = new Array();
+            for (var i=0; i < event.targetTouches.length; i++) {
+                tpCache.push(event.targetTouches[i]);
+            }
+
+        } else {
+            // empty tpCache
+            tpCache = new Array();
+        }
+    }
+}
 
 function render() {
     var buttonDiv = document.getElementById("button-div");

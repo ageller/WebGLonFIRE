@@ -99,6 +99,10 @@ var keepAlpha = true;
 //help screen
 var helpMessage = 1;
 
+//for touch events
+var touch = false;
+var tpCache = new Array();
+
 function webGLStart() {
 
 
@@ -137,11 +141,14 @@ function webGLStart() {
     document.addEventListener('DOMMouseScroll', handleMouseWheel);
     document.addEventListener('touchstart', handleMouseDown);
     document.addEventListener('touchend', handleMouseUp);
+    document.addEventListener('touchcancel', handleMouseUp);
     document.addEventListener('touchmove', handleMouseMove);
     document.addEventListener('keypress', handleKeyPress);
-    
+
     window.addEventListener('resize', handleResize);
 
+    canvas.onmousewheel = function(event){ event.preventDefault(); };
+    
     createUI();
     mouseDown = false;  //silly fix
 
