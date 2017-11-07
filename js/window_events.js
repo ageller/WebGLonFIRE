@@ -111,6 +111,10 @@ function handleMouseDown(event) {
     redraw = true;
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
+    if (lastMouseX == null){
+        lastMouseX = event.touches[0].clientX;
+        lastMouseY = event.touches[0].clientY;
+    }
 }
 function handleMouseUp(event) {
     mouseDown = false;
@@ -123,6 +127,14 @@ function handleMouseMove(event) {
 
     var newX = event.clientX;
     var newY = event.clientY;
+    var touch = false;
+
+    if (newX == null){
+        touch = true;
+        newX = event.touches[0].clientX;
+        newY = event.touches[0].clientY;
+    }
+
 
     var deltaX = newX - lastMouseX
     var deltaY = newY - lastMouseY;
@@ -134,7 +146,8 @@ function handleMouseMove(event) {
     var dyrot = 0.;
     var fac = 200.;
     dz = 0.;
-    if (event.which == 1 || event.which == 3){
+ 
+    if (event.which == 1 || event.which == 3 || (touch && event.which == 0)){
         dxrot = deltaX / canvas.width;
         dyrot = deltaY / canvas.height;
     } 

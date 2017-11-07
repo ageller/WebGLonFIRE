@@ -139,7 +139,7 @@ function webGLStart() {
     document.addEventListener('touchend', handleMouseUp);
     document.addEventListener('touchmove', handleMouseMove);
     document.addEventListener('keypress', handleKeyPress);
-
+    
     window.addEventListener('resize', handleResize);
 
     createUI();
