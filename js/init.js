@@ -128,17 +128,19 @@ function webGLStart() {
     gl.enable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.preserveDrawingBuffer = false;
-    canvas.onmousedown = handleMouseDown;
-    document.onmousedown = handleMouseDown;
-    document.onmouseup = handleMouseUp;
-    document.onmousemove = handleMouseMove;
-    canvas.addEventListener('wheel', handleMouseWheel);
-    canvas.addEventListener('mousewheel', handleMouseWheel)
-    canvas.addEventListener('DOMMouseScroll', handleMouseWheel);
-    window.addEventListener("resize", handleResize);
-    document.addEventListener("keypress", handleKeyPress)
-    canvas.onwheel = function(event){ event.preventDefault(); };
-    canvas.onmousewheel = function(event){ event.preventDefault(); };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('wheel', handleMouseWheel);
+    document.addEventListener('mousewheel', handleMouseWheel)
+    document.addEventListener('DOMMouseScroll', handleMouseWheel);
+    document.addEventListener('touchstart', handleMouseDown);
+    document.addEventListener('touchend', handleMouseUp);
+    document.addEventListener('touchmove', handleMouseMove);
+    document.addEventListener('keypress', handleKeyPress);
+
+    window.addEventListener('resize', handleResize);
 
     createUI();
     mouseDown = false;  //silly fix
